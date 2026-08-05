@@ -8,6 +8,7 @@
         "migrate": "npx drizzle-kit migrate"
     },
     "dependencies": {
+        "better-auth": "^1.6.26",
         "dotenv": "^17.4.2",
         "drizzle-orm": "^0.45.2",
         "hono": "^4.13.0",

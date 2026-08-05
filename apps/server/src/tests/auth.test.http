@@ -1,0 +1,82 @@
+@host = http://localhost:4000
+@email = test@example.com
+@password = Passw0rd!23
+
+# The Origin header on each POST is required: better-auth runs its CSRF origin
+# check whenever a request carries a Cookie, and HTTP clients replay the session
+# cookie set by the first sign-up/sign-in. Without it you get
+# 403 MISSING_OR_NULL_ORIGIN. {{host}} matches BETTER_AUTH_URL, which is trusted
+# by default, so no trustedOrigins config is needed.
+
+### Health check
+GET {{host}}/
+# -> 200  Hono!
+
+### Sign up (first run: 200, re-run with same email: 422)
+POST {{host}}/api/auth/sign-up/email
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "name": "Test User",
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+# -> 200  { "token": "...", "user": { "id": "...", "email": "...", "emailVerified": false } }
+
+### Sign in
+POST {{host}}/api/auth/sign-in/email
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+# -> 200  { "redirect": false, "token": "...", "user": { ... } }
+
+### Sign in - wrong password
+POST {{host}}/api/auth/sign-in/email
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "email": "{{email}}",
+  "password": "wrong-password"
+}
+# -> 401  { "message": "Invalid email or password", "code": "INVALID_EMAIL_OR_PASSWORD" }
+
+### Sign in - unknown user (same response as wrong password, by design)
+POST {{host}}/api/auth/sign-in/email
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "email": "nobody@example.com",
+  "password": "{{password}}"
+}
+# -> 401  { "message": "Invalid email or password", "code": "INVALID_EMAIL_OR_PASSWORD" }
+
+### Sign up - duplicate email
+POST {{host}}/api/auth/sign-up/email
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "name": "Test User",
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+# -> 422  { "message": "User already exists. Use another email.", "code": "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" }
+
+### Sign up - password too short (min 8 chars)
+POST {{host}}/api/auth/sign-up/email
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "name": "Short Password",
+  "email": "short@example.com",
+  "password": "abc"
+}
+# -> 400  { "message": "Password too short", "code": "PASSWORD_TOO_SHORT" }
