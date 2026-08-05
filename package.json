@@ -1,0 +1,9 @@
+{
+    "name": "railway-controller",
+    "private": true,
+    "type": "module",
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ]
+}
