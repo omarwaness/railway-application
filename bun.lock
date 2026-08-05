@@ -6,17 +6,20 @@
       "name": "railway-controller",
       "devDependencies": {
         "@types/bun": "^1.3.14",
+        "@types/node": "^26.1.2",
         "typescript": "^5.9.2",
       },
     },
     "apps/server": {
       "name": "railway-controller-server",
       "dependencies": {
+        "@hono/standard-validator": "^0.3.0",
         "better-auth": "^1.6.26",
         "dotenv": "^17.4.2",
         "drizzle-orm": "^0.45.2",
         "hono": "^4.13.0",
         "postgres": "^3.4.9",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "drizzle-kit": "^0.31.10",
@@ -99,6 +102,8 @@
     "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.25.12", "", { "os": "win32", "cpu": "ia32" }, "sha512-HkqnmmBoCbCwxUKKNPBixiWDGCpQGVsrQfJoVGYLPT41XWF8lHuE5N6WhVia2n4o5QK5M4tYr21827fNhi4byQ=="],
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.12", "", { "os": "win32", "cpu": "x64" }, "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="],
+
+    "@hono/standard-validator": ["@hono/standard-validator@0.3.0", "", { "peerDependencies": { "@standard-schema/spec": "^1.0.0", "hono": ">=4.11.2" } }, "sha512-tHLKEjKXDcHImj0XTFWW4Hr0ev+1G5GxnBZrGdpg/7NLy9s9meFPTSCOkw++ZzZKom3FjrMw2e0nFQpPPvwUVQ=="],
 
     "@noble/ciphers": ["@noble/ciphers@2.2.0", "", {}, "sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA=="],
 

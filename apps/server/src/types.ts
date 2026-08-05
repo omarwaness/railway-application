@@ -4,5 +4,7 @@ export type HonoEnv = {
     Variables: {
         user: typeof auth.$Infer.Session.user;
         session: typeof auth.$Infer.Session.session;
+        /** Decrypted Railway token, set by `tokenMiddleware`. */
+        railwayToken: string;
     };
 };
