@@ -12,6 +12,16 @@ const config: CodegenConfig = {
    generates: {
       './src/gql/generated/': {
          preset: 'client',
+         config: {
+            // Custom scalars have no implied TS type, so codegen emits `unknown`
+            // unless told otherwise. Railway sends DateTime as an ISO 8601 string;
+            // accepting `Date` on input saves a .toISOString() at every call site.
+            scalars: {
+               DateTime: { input: 'string | Date', output: 'string' },
+               JSON: 'unknown',
+               BigInt: 'string',
+            },
+         },
       }
    }
 }

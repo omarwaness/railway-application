@@ -1,0 +1,246 @@
+@host = http://localhost:4000
+@email = flow@example.com
+@password = Passw0rd!23
+
+# End-to-end walkthrough: sign up -> sign in -> save token -> project CRUD.
+# Run the requests top to bottom; later ones reuse ids captured from earlier
+# responses via `@name`, so skipping around will break the chain.
+#
+# The Origin header on each POST is required: better-auth runs its CSRF origin
+# check whenever a request carries a Cookie, and HTTP clients replay the session
+# cookie set by sign-up/sign-in. Without it you get 403 MISSING_OR_NULL_ORIGIN.
+#
+# WARNING: /projects talks to the real Railway API. The create/update/delete
+# requests below make real changes to your account. Paste a real token here:
+@railwayToken = 246949b8-7b45-4a6d-888f-defeb7d93567
+
+
+### Health check
+GET {{host}}/
+# -> 200  Hono!
+
+
+### 1. Sign up (first run: 200, re-run with same email: 422)
+# @name signup
+POST {{host}}/api/auth/sign-up/email
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "name": "Flow User",
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+# -> 200  { "token": "...", "user": { "id": "...", "email": "..." } }
+
+
+### 2. Sign in
+# @name signin
+POST {{host}}/api/auth/sign-in/email
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+# -> 200  { "redirect": false, "token": "...", "user": { ... } }
+
+
+### 3. Projects before a token is saved -> tokenMiddleware rejects
+GET {{host}}/projects
+# -> 404  { "error": "No Railway token found" }
+
+
+### 4. Save the Railway token
+POST {{host}}/token
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "token": "{{railwayToken}}"
+}
+# -> 200  { "connected": true, "last4": "..." }
+
+
+### 5. Confirm it stored
+GET {{host}}/token
+# -> 200  { "connected": true, "last4": "...", "createdAt": "...", "updatedAt": "..." }
+
+
+### 6. READ - list projects
+# @name list
+GET {{host}}/projects
+# -> 200  { "projects": [ { "id", "name", "description", "createdAt", "updatedAt",
+#                           "deletedAt", "isPublic", "workspaceId", "baseEnvironmentId",
+#                           "services": [ { "id", "name", "icon", "deletedAt" } ] } ],
+#           "pageInfo": { "hasNextPage": false, "endCursor": "..." } }
+#
+# Nothing is filtered server-side: soft-deleted projects and services both come
+# back with a non-null deletedAt, and the UI decides how to render them.
+
+
+### 7. READ - with query params
+GET {{host}}/projects?first=5&orderBy=NAME_ASC
+# -> 200  at most 5 projects, sorted by name
+
+
+### 8. READ - scoped to one workspace
+GET {{host}}/projects?workspaceId={{list.response.body.$.projects[0].workspaceId}}
+# -> 200  only that workspace's projects
+
+
+### 9. READ - rejects a bad orderBy
+GET {{host}}/projects?orderBy=NOPE
+# -> 400  validation error
+
+
+### 10. READ - rejects first out of range
+GET {{host}}/projects?first=500
+# -> 400  validation error
+
+
+### 11. CREATE
+# @name create
+POST {{host}}/projects
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "name": "flow-test-project",
+  "description": "created by flow.test.http"
+}
+# -> 201  { "project": { "id": "...", "name": "flow-test-project", "services": [] } }
+
+
+### 12. CREATE - no name at all; Railway generates one
+# @name createUnnamed
+POST {{host}}/projects
+Content-Type: application/json
+Origin: {{host}}
+
+{}
+# -> 201  { "project": { "name": "<railway-generated>", ... } }
+
+
+### 12b. Clean up the generated project from step 12
+DELETE {{host}}/projects/{{createUnnamed.response.body.$.project.id}}
+# -> 200  { "deleted": true }
+
+
+### 13. CREATE - still rejects a blank name when the field is present
+POST {{host}}/projects
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "name": "   "
+}
+# -> 400  "Name is required"
+
+
+### 14. UPDATE - rename only; description must survive
+PATCH {{host}}/projects/{{create.response.body.$.project.id}}
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "name": "flow-test-renamed"
+}
+# -> 200  name changed, description still "created by flow.test.http"
+
+
+### 15. UPDATE - several fields at once
+PATCH {{host}}/projects/{{create.response.body.$.project.id}}
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "description": "updated by flow.test.http",
+  "isPublic": false,
+  "prDeploys": false
+}
+# -> 200  { "project": { "description": "updated by flow.test.http", ... } }
+
+
+### 16. UPDATE - clear the description with "" (the open question)
+PATCH {{host}}/projects/{{create.response.body.$.project.id}}
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "description": ""
+}
+# -> 200  if description comes back "" the empty-string clear works;
+#         if the old text is still there, description is set-only via this API
+
+
+### 17. UPDATE - rejects an empty body
+PATCH {{host}}/projects/{{create.response.body.$.project.id}}
+Content-Type: application/json
+Origin: {{host}}
+
+{}
+# -> 400  "At least one field is required"
+
+
+### 18. UPDATE - rejects null description (null is a silent no-op upstream)
+PATCH {{host}}/projects/{{create.response.body.$.project.id}}
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "description": null
+}
+# -> 400  validation error
+
+
+### 19. UPDATE - rejects a non-uuid id before reaching Railway
+PATCH {{host}}/projects/not-a-uuid
+Content-Type: application/json
+Origin: {{host}}
+
+{
+  "name": "nope"
+}
+# -> 400  "Invalid project id"
+
+
+### 20. READ - the new project shows up in the list
+GET {{host}}/projects
+# -> 200  contains the project created in step 11
+
+
+### 21. DELETE
+DELETE {{host}}/projects/{{create.response.body.$.project.id}}
+# -> 200  { "deleted": true }
+
+
+### 22. DELETE - same id again, now gone
+DELETE {{host}}/projects/{{create.response.body.$.project.id}}
+# -> 403 or 502  { "error": "..." }  (Railway decides; not a local 404)
+
+
+### 23. DELETE - rejects a non-uuid id
+DELETE {{host}}/projects/not-a-uuid
+# -> 400  "Invalid project id"
+
+
+### 24. DELETE - unknown but well-formed id
+DELETE {{host}}/projects/00000000-0000-4000-8000-000000000000
+# -> 403 or 502  { "error": "..." }
+
+
+### 25. READ - the deleted project is gone
+GET {{host}}/projects
+# -> 200  no "flow-test-renamed" in the list
+
+
+### 26. Remove the Railway token
+DELETE {{host}}/token
+# -> 200  { "connected": false }
+
+
+### 27. Projects is blocked again once the token is gone
+GET {{host}}/projects
+# -> 404  { "error": "No Railway token found" }
