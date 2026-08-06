@@ -37,8 +37,3 @@ export const tokenMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
     c.set('railwayToken', token);
     await next();
 });
-
-// Ready-to-spread headers for a Railway API call.
-export const railwayAuthHeaders = (token: string) => ({
-    Authorization: `Bearer ${token}`,
-});

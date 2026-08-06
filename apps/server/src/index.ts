@@ -1,3 +1,5 @@
+import "./lib/env";
+
 import { Hono } from 'hono'
 import { auth } from "./lib/auth";
 import tokenRoutes from "./routes/token";
