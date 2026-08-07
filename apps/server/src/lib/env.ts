@@ -12,6 +12,16 @@ const envSchema = z.object({
     DATABASE_URL: urlSchema,
     BETTER_AUTH_URL: urlSchema,
     BETTER_AUTH_SECRET: z.string().min(32, "must be at least 32 characters"),
+    GOOGLE_CLIENT_ID: z
+        .string()
+        .min(1)
+        .refine(
+            (value) => value.endsWith(".apps.googleusercontent.com"),
+            "must be a Google OAuth client ID (ends with .apps.googleusercontent.com)",
+        ),
+    GOOGLE_CLIENT_SECRET: z.string().min(1),
+    GITHUB_CLIENT_ID: z.string().min(1),
+    GITHUB_CLIENT_SECRET: z.string().min(1),
     RAILWAY_ENDPOINT: urlSchema,
     ENCRYPTION_KEY: z
         .string()
