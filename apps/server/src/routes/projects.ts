@@ -1,15 +1,18 @@
 import { Hono } from "hono";
 import { sValidator } from "@hono/standard-validator";
-import { ClientError } from "graphql-request";
 import { z } from "zod";
 
 import { createRailwayClient } from "../lib/graphql-client";
+import { railwayError } from "../lib/railway-error";
 import {
     PROJECTS_QUERY,
+    PROJECT_OVERVIEW_QUERY,
     PROJECT_CREATE_MUTATION,
     PROJECT_UPDATE_MUTATION,
     PROJECT_DELETE_MUTATION,
 } from "../gql/project-queries";
+import { useFragment, type FragmentType } from "../gql/generated";
+import { SERVICE_ROW_FRAGMENT } from "../gql/service-queries";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { tokenMiddleware } from "../middlewares/token.middleware";
 import type { HonoEnv } from "../types";
@@ -42,6 +45,13 @@ export const createProjectSchema = z.object({
     prDeploys: prDeploys.optional(),
 });
 
+// `isEphemeral` defaults to false in the query itself, which keeps PR/preview
+// environments out of the switcher; pass true for just those.
+export const projectOverviewSchema = z.object({
+    envFirst: z.coerce.number().int().min(1).max(100).optional(),
+    isEphemeral: z.stringbool().optional(),
+});
+
 // Railway ignores nulls on update, so `description: ""` is how you clear it.
 export const updateProjectSchema = z
     .object({
@@ -54,17 +64,23 @@ export const updateProjectSchema = z
 
 const idParamSchema = z.object({ id: z.uuid("Invalid project id") });
 
-/**
- * Railway answers with 200 + an `errors` array, which graphql-request throws
- * as ClientError. Anything else is a real failure and should bubble up.
- */
-function railwayError(err: unknown) {
-    if (!(err instanceof ClientError)) throw err;
-
-    const message = err.response.errors?.[0]?.message ?? "Railway request failed";
-    const status = message === "Not Authorized" ? 403 : 502;
-
-    return { message, status } as const;
+/** Flattens an environment's service instances into the shared ServiceRow shape. */
+function withServices(env: {
+    id: string;
+    name: string;
+    unmergedChangesCount: number | null;
+    serviceInstances: {
+        edges: Array<{ node: FragmentType<typeof SERVICE_ROW_FRAGMENT> }>;
+    };
+}) {
+    return {
+        id: env.id,
+        name: env.name,
+        unmergedChangesCount: env.unmergedChangesCount,
+        services: env.serviceInstances.edges.map(({ node }) =>
+            useFragment(SERVICE_ROW_FRAGMENT, node),
+        ),
+    };
 }
 
 // List the caller's projects, newest activity first.
@@ -98,6 +114,52 @@ app.get("/", sValidator("query", listProjectsSchema), async (c) => {
         return c.json({ error: message }, status);
     }
 });
+
+// The project page: header, environments for the switcher, and the services in
+// the base environment. Loads from a project id alone, which is what a direct
+// URL or a refresh has — switch to GET /environments/:id once the user picks a
+// different environment.
+app.get(
+    "/:id",
+    sValidator("param", idParamSchema),
+    sValidator("query", projectOverviewSchema),
+    async (c) => {
+        const client = createRailwayClient(c.get("railwayToken"));
+        const { id } = c.req.valid("param");
+        const { envFirst, isEphemeral } = c.req.valid("query");
+
+        try {
+            const data = await client.request(PROJECT_OVERVIEW_QUERY, {
+                id,
+                envFirst,
+                isEphemeral,
+            });
+
+            const { environments, ...project } = data.project;
+            const envs = environments.edges.map(({ node }) => node);
+
+            // The environment the page opens on. `primaryEnvironmentId` is the
+            // right field for this — `baseEnvironmentId` is a PR-deploys
+            // setting and is null on a normal project. Falling back to the
+            // first environment covers a project that has neither set, which
+            // otherwise leaves the page with no environment id at all.
+            const primary =
+                envs.find((env) => env.id === project.primaryEnvironmentId) ?? envs[0];
+
+            return c.json({
+                project,
+                // The service lists ride along only on the environment being
+                // shown; the rest of the switcher just needs names.
+                environments: envs.map(({ serviceInstances, ...env }) => env),
+                environmentsPageInfo: environments.pageInfo,
+                primaryEnvironment: primary ? withServices(primary) : null,
+            });
+        } catch (err) {
+            const { message, status } = railwayError(err);
+            return c.json({ error: message }, status);
+        }
+    },
+);
 
 // Create a project.
 app.post("/", sValidator("json", createProjectSchema), async (c) => {

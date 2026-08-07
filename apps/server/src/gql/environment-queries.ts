@@ -208,8 +208,10 @@ export const ENVIRONMENT_RENAME_MUTATION = graphql(`
  * Irreversible, and returns a bare `Boolean!` — `false` means Railway declined
  * without saying why, same shape as `projectDelete` and `serviceDelete`.
  *
- * Nothing in the schema stops you deleting the project's base environment
- * (`baseEnvironmentId` on PROJECTS_QUERY), so guard that in the route.
+ * Nothing in the schema stops you deleting the environment a project can't do
+ * without — not its `primaryEnvironmentId` one, and not the last one it has —
+ * so guard both in the route. (`baseEnvironmentId` is a different thing: where
+ * PR deploys fork from, usually null. See PROJECT_OVERVIEW_QUERY.)
  */
 export const ENVIRONMENT_DELETE_MUTATION = graphql(`
    mutation EnvironmentDelete($id: String!) {
