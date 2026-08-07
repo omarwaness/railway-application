@@ -5,6 +5,7 @@
     "scripts": {
         "dev": "bun run --hot src/index.ts",
         "test": "bun test src/tests --timeout 30000",
+        "test:routes": "bun test src/tests/routes.test.ts --timeout 300000",
         "generate": "drizzle-kit generate",
         "codegen": "graphql-codegen --config codegen.ts",
         "migrate": "npx drizzle-kit migrate"

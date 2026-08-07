@@ -43,7 +43,7 @@ export const PROJECTS_QUERY = graphql(`
                deletedAt
                isPublic
                workspaceId
-               baseEnvironmentId
+               primaryEnvironmentId
                services(first: $serviceLimit) {
                   edges {
                      node {
@@ -74,12 +74,25 @@ export const PROJECTS_QUERY = graphql(`
  * The /projects/:id page in one request: the project header, the environments
  * for the switcher, and the services running in the base environment.
  *
- * Replaces ENVIRONMENTS_QUERY + ENVIRONMENT_QUERY + a SERVICE_QUERY per row.
- * `baseEnvironment` is what makes that possible — it means the page can load
- * from a project id alone, with no environment id in hand, which is the case
- * on a direct URL or a refresh. Once the user picks a different environment,
- * switch to ENVIRONMENT_QUERY; it selects the same ...ServiceRow fragment, so
- * the rendered list needs no second shape.
+ * Replaces ENVIRONMENTS_QUERY + ENVIRONMENT_QUERY + a SERVICE_QUERY per row,
+ * so the page can load from a project id alone — the case on a direct URL or a
+ * refresh. Once the user picks a different environment, switch to
+ * ENVIRONMENT_QUERY; it selects the same ...ServiceRow fragment, so the
+ * rendered list needs no second shape.
+ *
+ * `primaryEnvironmentId` is the environment to open on — NOT `baseEnvironment`,
+ * which despite the name is where PR deploys fork from and stays null until PR
+ * deploys are configured. Verified against the live API: a freshly created
+ * project comes back with `baseEnvironmentId` null while `environments` already
+ * holds the production environment it was created with. Selecting the wrong one
+ * leaves the page with no environment id and every downstream call unusable.
+ *
+ * There is no `primaryEnvironment` object field to go with the id — only the id
+ * — which is why `serviceInstances` hangs off the environments connection here
+ * rather than off one environment. The route matches the id against that list
+ * and already holds the services, so this stays a single request. Environments
+ * the user hasn't opened cost a service list each; that's the price of not
+ * making the page wait on a second round trip.
  *
  * `isEphemeral: false` keeps PR/preview environments out of the switcher by
  * default; pass `null` to include them.
@@ -103,7 +116,7 @@ export const PROJECT_OVERVIEW_QUERY = graphql(`
          deletedAt
          isPublic
          workspaceId
-         baseEnvironmentId
+         primaryEnvironmentId
          environments(first: $envFirst, isEphemeral: $isEphemeral) {
             edges {
                node {
@@ -111,23 +124,19 @@ export const PROJECT_OVERVIEW_QUERY = graphql(`
                   name
                   isEphemeral
                   createdAt
+                  unmergedChangesCount
+                  serviceInstances {
+                     edges {
+                        node {
+                           ...ServiceRow
+                        }
+                     }
+                  }
                }
             }
             pageInfo {
                hasNextPage
                endCursor
-            }
-         }
-         baseEnvironment {
-            id
-            name
-            unmergedChangesCount
-            serviceInstances {
-               edges {
-                  node {
-                     ...ServiceRow
-                  }
-               }
             }
          }
       }
@@ -154,7 +163,7 @@ export const PROJECT_CREATE_MUTATION = graphql(`
          deletedAt
          isPublic
          workspaceId
-         baseEnvironmentId
+         primaryEnvironmentId
       }
    }
 `)
@@ -177,6 +186,7 @@ export const PROJECT_UPDATE_MUTATION = graphql(`
          prDeploys
          botPrEnvironments
          focusedPrEnvironments
+         primaryEnvironmentId
          baseEnvironmentId
       }
    }
