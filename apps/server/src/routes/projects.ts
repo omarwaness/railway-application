@@ -89,6 +89,9 @@ app.get("/", sValidator("query", listProjectsSchema), async (c) => {
                 services: node.services.edges.map(({ node: service }) => service),
             })),
             pageInfo: data.projects.pageInfo,
+            // Batched into the same query so the dashboard paints from one
+            // request — the workspace switcher needs these on first load.
+            workspaces: data.apiToken.workspaces,
         });
     } catch (err) {
         const { message, status } = railwayError(err);

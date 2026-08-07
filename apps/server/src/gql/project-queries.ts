@@ -1,11 +1,18 @@
 import { graphql } from './generated'
 
 /**
- * Projects for the dashboard grid — one card per project.
+ * Everything the dashboard needs in one round trip — the project grid plus the
+ * workspaces for the switcher.
+ *
+ * `apiToken` rides along as a second root field rather than a second request:
+ * both are needed to paint the page, and GraphQL will resolve them in
+ * parallel. See WORKSPACES_QUERY below for why it's `apiToken` and not `me`.
  *
  * `projects` spans every workspace the token can see, so pass `workspaceId`
  * to scope it. Services are capped because a card only renders a handful of
- * icons.
+ * icons — note this makes `services.length` a *display* count, not the real
+ * total. Nothing in this schema exposes one: no connection here has a
+ * `totalCount`, so an exact figure would mean paging every project's services.
  *
  * `deletedAt` is selected at both levels because Railway returns soft-deleted
  * projects regardless of `includeDeleted`, and the services connection has no
@@ -52,6 +59,76 @@ export const PROJECTS_QUERY = graphql(`
          pageInfo {
             hasNextPage
             endCursor
+         }
+      }
+      apiToken {
+         workspaces {
+            id
+            name
+         }
+      }
+   }
+`)
+
+/**
+ * The /projects/:id page in one request: the project header, the environments
+ * for the switcher, and the services running in the base environment.
+ *
+ * Replaces ENVIRONMENTS_QUERY + ENVIRONMENT_QUERY + a SERVICE_QUERY per row.
+ * `baseEnvironment` is what makes that possible — it means the page can load
+ * from a project id alone, with no environment id in hand, which is the case
+ * on a direct URL or a refresh. Once the user picks a different environment,
+ * switch to ENVIRONMENT_QUERY; it selects the same ...ServiceRow fragment, so
+ * the rendered list needs no second shape.
+ *
+ * `isEphemeral: false` keeps PR/preview environments out of the switcher by
+ * default; pass `null` to include them.
+ *
+ * Ordering note: `Project.environments` takes `sort`, not the `orderBy` the
+ * root `environments` field uses. Left unset here — the switcher is short
+ * enough that creation order reads fine.
+ */
+export const PROJECT_OVERVIEW_QUERY = graphql(`
+   query ProjectOverview(
+      $id: String!
+      $envFirst: Int = 20
+      $isEphemeral: Boolean = false
+   ) {
+      project(id: $id) {
+         id
+         name
+         description
+         createdAt
+         updatedAt
+         deletedAt
+         isPublic
+         workspaceId
+         baseEnvironmentId
+         environments(first: $envFirst, isEphemeral: $isEphemeral) {
+            edges {
+               node {
+                  id
+                  name
+                  isEphemeral
+                  createdAt
+               }
+            }
+            pageInfo {
+               hasNextPage
+               endCursor
+            }
+         }
+         baseEnvironment {
+            id
+            name
+            unmergedChangesCount
+            serviceInstances {
+               edges {
+                  node {
+                     ...ServiceRow
+                  }
+               }
+            }
          }
       }
    }

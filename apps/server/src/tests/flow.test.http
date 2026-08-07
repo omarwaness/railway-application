@@ -12,7 +12,7 @@
 #
 # WARNING: /projects talks to the real Railway API. The create/update/delete
 # requests below make real changes to your account. Paste a real token here:
-@railwayToken = 246949b8-7b45-4a6d-888f-defeb7d93567
+@railwayToken = PASTE_TOKEN_HERE
 
 
 ### Health check
