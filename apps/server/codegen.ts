@@ -20,6 +20,15 @@ const config: CodegenConfig = {
                DateTime: { input: 'string | Date', output: 'string' },
                JSON: 'unknown',
                BigInt: 'string',
+               // "A map of environment variables" per the schema — values are
+               // always strings on the wire, including numeric ports.
+               EnvironmentVariables: 'Record<string, string>',
+               // Undocumented scalar whose shape varies by deployment source
+               // (commit info for repos, tag info for images). Narrow it at
+               // the point of use rather than pretending to know it here.
+               DeploymentMeta: 'unknown',
+               // An environment's whole service/variable config as one blob.
+               EnvironmentConfig: 'unknown',
             },
          },
       }
