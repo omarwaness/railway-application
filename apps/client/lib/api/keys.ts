@@ -95,6 +95,15 @@ type DeploymentVariableParams = {
 }
 
 export const queryKeys = {
+  /**
+   * The signed-in user. Not an API route — better-auth serves it — but it
+   * belongs here so sign-in, sign-up and sign-out invalidate the same key
+   * everything else reads.
+   */
+  session: {
+    all: () => ["session"] as const,
+  },
+
   token: {
     all: () => ["token"] as const,
   },
