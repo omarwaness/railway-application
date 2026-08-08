@@ -40,12 +40,14 @@ function CurrentUser() {
     )
   }
 
+  // `||` rather than `??`: a social provider can hand back a name, but an
+  // email sign-up without one leaves it an empty string, which is just as
+  // useless to show as `null`.
+  const label = session.user.name || session.user.email
+
   return (
     <div className="flex items-center gap-3">
-      <div className="min-w-0 text-sm leading-tight">
-        <p className="truncate font-medium">{session.user.name}</p>
-        <p className="truncate text-muted-foreground">{session.user.email}</p>
-      </div>
+      <p className="min-w-0 truncate text-sm font-medium">{label}</p>
       <LogoutButton />
     </div>
   )
