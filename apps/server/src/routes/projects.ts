@@ -34,6 +34,13 @@ export const listProjectsSchema = z.object({
     orderBy: z.enum(["CREATED_AT_DESC", "NAME_ASC", "UPDATED_AT_DESC"]).optional(),
 });
 
+// Railway requires both halves of a repo. Only the name identifies it, so the
+// branch defaults rather than forcing every caller to say "main".
+const repo = z.object({
+    fullRepoName: z.string().trim().min(1).max(255),
+    branch: z.string().trim().min(1).max(255).default("main"),
+});
+
 // Every field is optional upstream — `{}` creates a project with a name that
 // Railway generates. Blank/oversized values are still rejected when present.
 export const createProjectSchema = z.object({
@@ -42,6 +49,7 @@ export const createProjectSchema = z.object({
     workspaceId: z.string().trim().min(1).optional(),
     isPublic: isPublic.optional(),
     prDeploys: prDeploys.optional(),
+    repo: repo.optional(),
 });
 
 // `isEphemeral` defaults to false in the query itself, which keeps PR/preview
