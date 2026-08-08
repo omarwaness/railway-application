@@ -15,10 +15,9 @@ import { authMiddleware } from "../middlewares/auth.middleware";
 import { tokenMiddleware } from "../middlewares/token.middleware";
 import type { HonoEnv } from "../types";
 
-const app = new Hono<HonoEnv>();
-
-app.use(authMiddleware);
-app.use(tokenMiddleware);
+const app = new Hono<HonoEnv>()
+    .use(authMiddleware)
+    .use(tokenMiddleware);
 
 const projectId = z.uuid("Invalid project id");
 const environmentId = z.uuid("Invalid environment id");
@@ -81,112 +80,113 @@ export const deleteVariableSchema = z
     .object({ ...scopeShape, name })
     .refine(...scopeRefine);
 
-// Variables set at one scope. Shared variables and a service's own are the same
-// field upstream — see `scope`.
-app.get("/", sValidator("query", listVariablesSchema), async (c) => {
-    const client = createRailwayClient(c.get("railwayToken"));
-    const { projectId, environmentId, serviceId, unrendered } = c.req.valid("query");
-
-    try {
-        // A flat name→value map, not a list — there are no ids to delete by.
-        const data = await client.request(VARIABLES_QUERY, {
-            projectId,
-            environmentId,
-            serviceId,
-            unrendered,
-        });
-
-        return c.json({ variables: data.variables });
-    } catch (err) {
-        const { message, status } = railwayError(err);
-        return c.json({ error: message }, status);
-    }
-});
-
-// Every variable a deployment would actually see: service variables merged with
-// shared ones, references expanded, plus whatever Railway injects. No shared
-// form here — `serviceId` is required.
-app.get(
-    "/deployment",
-    sValidator("query", z.object({ projectId, environmentId, serviceId })),
-    async (c) => {
+const routes = app
+    // Variables set at one scope. Shared variables and a service's own are the same
+    // field upstream — see `scope`.
+    .get("/", sValidator("query", listVariablesSchema), async (c) => {
         const client = createRailwayClient(c.get("railwayToken"));
-        const { projectId, environmentId, serviceId } = c.req.valid("query");
+        const { projectId, environmentId, serviceId, unrendered } = c.req.valid("query");
 
         try {
-            const data = await client.request(VARIABLES_FOR_DEPLOYMENT_QUERY, {
+            // A flat name→value map, not a list — there are no ids to delete by.
+            const data = await client.request(VARIABLES_QUERY, {
                 projectId,
                 environmentId,
                 serviceId,
+                unrendered,
             });
 
-            return c.json({ variables: data.variablesForServiceDeployment });
+            return c.json({ variables: data.variables });
         } catch (err) {
             const { message, status } = railwayError(err);
             return c.json({ error: message }, status);
         }
-    },
-);
+    })
 
-// Create or overwrite one variable. There is no separate create — upsert keyed
-// by name is the only single write.
-app.put("/", sValidator("json", upsertVariableSchema), async (c) => {
-    const client = createRailwayClient(c.get("railwayToken"));
-    const { scope: _scope, ...input } = c.req.valid("json");
+    // Every variable a deployment would actually see: service variables merged with
+    // shared ones, references expanded, plus whatever Railway injects. No shared
+    // form here — `serviceId` is required.
+    .get(
+        "/deployment",
+        sValidator("query", z.object({ projectId, environmentId, serviceId })),
+        async (c) => {
+            const client = createRailwayClient(c.get("railwayToken"));
+            const { projectId, environmentId, serviceId } = c.req.valid("query");
 
-    try {
-        const data = await client.request(VARIABLE_UPSERT_MUTATION, { input });
+            try {
+                const data = await client.request(VARIABLES_FOR_DEPLOYMENT_QUERY, {
+                    projectId,
+                    environmentId,
+                    serviceId,
+                });
 
-        if (!data.variableUpsert) {
-            return c.json({ error: "Could not save variable" }, 502);
+                return c.json({ variables: data.variablesForServiceDeployment });
+            } catch (err) {
+                const { message, status } = railwayError(err);
+                return c.json({ error: message }, status);
+            }
+        },
+    )
+
+    // Create or overwrite one variable. There is no separate create — upsert keyed
+    // by name is the only single write.
+    .put("/", sValidator("json", upsertVariableSchema), async (c) => {
+        const client = createRailwayClient(c.get("railwayToken"));
+        const { scope: _scope, ...input } = c.req.valid("json");
+
+        try {
+            const data = await client.request(VARIABLE_UPSERT_MUTATION, { input });
+
+            if (!data.variableUpsert) {
+                return c.json({ error: "Could not save variable" }, 502);
+            }
+
+            return c.json({ saved: true });
+        } catch (err) {
+            const { message, status } = railwayError(err);
+            return c.json({ error: message }, status);
         }
+    })
 
-        return c.json({ saved: true });
-    } catch (err) {
-        const { message, status } = railwayError(err);
-        return c.json({ error: message }, status);
-    }
-});
+    // Write many at once — a bulk editor, a .env import, or copying between
+    // environments. One deploy for the whole batch instead of one each.
+    .put("/bulk", sValidator("json", upsertVariablesSchema), async (c) => {
+        const client = createRailwayClient(c.get("railwayToken"));
+        const { scope: _scope, ...input } = c.req.valid("json");
 
-// Write many at once — a bulk editor, a .env import, or copying between
-// environments. One deploy for the whole batch instead of one each.
-app.put("/bulk", sValidator("json", upsertVariablesSchema), async (c) => {
-    const client = createRailwayClient(c.get("railwayToken"));
-    const { scope: _scope, ...input } = c.req.valid("json");
+        try {
+            const data = await client.request(VARIABLE_COLLECTION_UPSERT_MUTATION, { input });
 
-    try {
-        const data = await client.request(VARIABLE_COLLECTION_UPSERT_MUTATION, { input });
+            if (!data.variableCollectionUpsert) {
+                return c.json({ error: "Could not save variables" }, 502);
+            }
 
-        if (!data.variableCollectionUpsert) {
-            return c.json({ error: "Could not save variables" }, 502);
+            return c.json({ saved: true });
+        } catch (err) {
+            const { message, status } = railwayError(err);
+            return c.json({ error: message }, status);
         }
+    })
 
-        return c.json({ saved: true });
-    } catch (err) {
-        const { message, status } = railwayError(err);
-        return c.json({ error: message }, status);
-    }
-});
+    // Delete one variable by name. Note there's no skipDeploys on this one, so a
+    // delete always triggers a deploy — clearing several is cheaper through
+    // PUT /bulk with `replace: true`.
+    .delete("/", sValidator("query", deleteVariableSchema), async (c) => {
+        const client = createRailwayClient(c.get("railwayToken"));
+        const { scope: _scope, ...input } = c.req.valid("query");
 
-// Delete one variable by name. Note there's no skipDeploys on this one, so a
-// delete always triggers a deploy — clearing several is cheaper through
-// PUT /bulk with `replace: true`.
-app.delete("/", sValidator("query", deleteVariableSchema), async (c) => {
-    const client = createRailwayClient(c.get("railwayToken"));
-    const { scope: _scope, ...input } = c.req.valid("query");
+        try {
+            const data = await client.request(VARIABLE_DELETE_MUTATION, { input });
 
-    try {
-        const data = await client.request(VARIABLE_DELETE_MUTATION, { input });
+            if (!data.variableDelete) {
+                return c.json({ error: "Could not delete variable" }, 502);
+            }
 
-        if (!data.variableDelete) {
-            return c.json({ error: "Could not delete variable" }, 502);
+            return c.json({ deleted: true });
+        } catch (err) {
+            const { message, status } = railwayError(err);
+            return c.json({ error: message }, status);
         }
+    });
 
-        return c.json({ deleted: true });
-    } catch (err) {
-        const { message, status } = railwayError(err);
-        return c.json({ error: message }, status);
-    }
-});
-
-export default app;
+export default routes;

@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 
 import { db } from "../db/db"
+import { env } from "./env";
 import * as schema from "../db/schema";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
@@ -9,6 +10,9 @@ export const auth = betterAuth({
         db,
         { provider: "pg", schema }
     ),
+    // The client lives on another origin; without it here better-auth rejects
+    // its sign-in calls and post-OAuth redirects back to it.
+    trustedOrigins: [env.CLIENT_URL],
     emailAndPassword: {
         enabled: true,
     },

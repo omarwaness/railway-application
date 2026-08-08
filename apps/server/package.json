@@ -2,6 +2,9 @@
     "name": "railway-controller-server",
     "private": true,
     "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
     "scripts": {
         "dev": "bun run --hot src/index.ts",
         "test": "bun test src/tests --timeout 30000",
