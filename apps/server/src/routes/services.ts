@@ -19,10 +19,9 @@ import { authMiddleware } from "../middlewares/auth.middleware";
 import { tokenMiddleware } from "../middlewares/token.middleware";
 import type { HonoEnv } from "../types";
 
-const app = new Hono<HonoEnv>();
-
-app.use(authMiddleware);
-app.use(tokenMiddleware);
+const app = new Hono<HonoEnv>()
+    .use(authMiddleware)
+    .use(tokenMiddleware);
 
 // Shared field definitions.
 const name = z.string().trim().min(1, "Name cannot be blank").max(255);
@@ -100,204 +99,205 @@ const detailQuerySchema = z.object({
     deploymentLimit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
-// A service's identity. Soft-deleted services come back with deletedAt set —
-// same as PROJECTS_QUERY, the UI decides whether to show them.
-app.get("/:id", sValidator("param", idParamSchema), async (c) => {
-    const client = createRailwayClient(c.get("railwayToken"));
-    const { id } = c.req.valid("param");
-
-    try {
-        const data = await client.request(SERVICE_QUERY, { id });
-        return c.json({ service: data.service });
-    } catch (err) {
-        const { message, status } = railwayError(err);
-        return c.json({ error: message }, status);
-    }
-});
-
-// How the service is configured in one environment.
-app.get(
-    "/:id/instance",
-    sValidator("param", idParamSchema),
-    sValidator("query", environmentQuerySchema),
-    async (c) => {
+const routes = app
+    // A service's identity. Soft-deleted services come back with deletedAt set —
+    // same as PROJECTS_QUERY, the UI decides whether to show them.
+    .get("/:id", sValidator("param", idParamSchema), async (c) => {
         const client = createRailwayClient(c.get("railwayToken"));
         const { id } = c.req.valid("param");
-        const { environmentId } = c.req.valid("query");
 
         try {
-            const data = await client.request(SERVICE_INSTANCE_QUERY, {
-                serviceId: id,
-                environmentId,
-            });
-            return c.json({ instance: data.serviceInstance });
+            const data = await client.request(SERVICE_QUERY, { id });
+            return c.json({ service: data.service });
         } catch (err) {
             const { message, status } = railwayError(err);
             return c.json({ error: message }, status);
         }
-    },
-);
+    })
 
-// The whole service detail panel — settings, domains, variables and history.
-app.get(
-    "/:id/detail",
-    sValidator("param", idParamSchema),
-    sValidator("query", detailQuerySchema),
-    async (c) => {
+    // How the service is configured in one environment.
+    .get(
+        "/:id/instance",
+        sValidator("param", idParamSchema),
+        sValidator("query", environmentQuerySchema),
+        async (c) => {
+            const client = createRailwayClient(c.get("railwayToken"));
+            const { id } = c.req.valid("param");
+            const { environmentId } = c.req.valid("query");
+
+            try {
+                const data = await client.request(SERVICE_INSTANCE_QUERY, {
+                    serviceId: id,
+                    environmentId,
+                });
+                return c.json({ instance: data.serviceInstance });
+            } catch (err) {
+                const { message, status } = railwayError(err);
+                return c.json({ error: message }, status);
+            }
+        },
+    )
+
+    // The whole service detail panel — settings, domains, variables and history.
+    .get(
+        "/:id/detail",
+        sValidator("param", idParamSchema),
+        sValidator("query", detailQuerySchema),
+        async (c) => {
+            const client = createRailwayClient(c.get("railwayToken"));
+            const { id } = c.req.valid("param");
+            const { projectId, environmentId, unrendered, deploymentLimit } =
+                c.req.valid("query");
+
+            try {
+                const data = await client.request(SERVICE_DETAIL_QUERY, {
+                    serviceId: id,
+                    projectId,
+                    environmentId,
+                    unrendered,
+                    deploymentLimit,
+                });
+
+                return c.json({
+                    instance: data.serviceInstance,
+                    variables: data.variables,
+                    // Flatten the connection — the client shouldn't care about edges.
+                    deployments: data.deployments.edges.map(({ node }) => node),
+                    pageInfo: data.deployments.pageInfo,
+                });
+            } catch (err) {
+                const { message, status } = railwayError(err);
+                return c.json({ error: message }, status);
+            }
+        },
+    )
+
+    // Create a service — from a repo, an image, or nothing at all.
+    .post("/", sValidator("json", createServiceSchema), async (c) => {
         const client = createRailwayClient(c.get("railwayToken"));
-        const { id } = c.req.valid("param");
-        const { projectId, environmentId, unrendered, deploymentLimit } =
-            c.req.valid("query");
-
-        try {
-            const data = await client.request(SERVICE_DETAIL_QUERY, {
-                serviceId: id,
-                projectId,
-                environmentId,
-                unrendered,
-                deploymentLimit,
-            });
-
-            return c.json({
-                instance: data.serviceInstance,
-                variables: data.variables,
-                // Flatten the connection — the client shouldn't care about edges.
-                deployments: data.deployments.edges.map(({ node }) => node),
-                pageInfo: data.deployments.pageInfo,
-            });
-        } catch (err) {
-            const { message, status } = railwayError(err);
-            return c.json({ error: message }, status);
-        }
-    },
-);
-
-// Create a service — from a repo, an image, or nothing at all.
-app.post("/", sValidator("json", createServiceSchema), async (c) => {
-    const client = createRailwayClient(c.get("railwayToken"));
-    const input = c.req.valid("json");
-
-    try {
-        const data = await client.request(SERVICE_CREATE_MUTATION, { input });
-        return c.json({ service: data.serviceCreate }, 201);
-    } catch (err) {
-        const { message, status } = railwayError(err);
-        return c.json({ error: message }, status);
-    }
-});
-
-// Rename a service or change its icon.
-app.patch(
-    "/:id",
-    sValidator("param", idParamSchema),
-    sValidator("json", updateServiceSchema),
-    async (c) => {
-        const client = createRailwayClient(c.get("railwayToken"));
-        const { id } = c.req.valid("param");
         const input = c.req.valid("json");
 
         try {
-            const data = await client.request(SERVICE_UPDATE_MUTATION, { id, input });
-            return c.json({ service: data.serviceUpdate });
+            const data = await client.request(SERVICE_CREATE_MUTATION, { input });
+            return c.json({ service: data.serviceCreate }, 201);
         } catch (err) {
             const { message, status } = railwayError(err);
             return c.json({ error: message }, status);
         }
-    },
-);
+    })
 
-// Point a service at a repo or an image. `Service` has no source field, so the
-// response can't echo the connection back — re-read the instance to confirm.
-app.post(
-    "/:id/connect",
-    sValidator("param", idParamSchema),
-    sValidator("json", connectServiceSchema),
-    async (c) => {
+    // Rename a service or change its icon.
+    .patch(
+        "/:id",
+        sValidator("param", idParamSchema),
+        sValidator("json", updateServiceSchema),
+        async (c) => {
+            const client = createRailwayClient(c.get("railwayToken"));
+            const { id } = c.req.valid("param");
+            const input = c.req.valid("json");
+
+            try {
+                const data = await client.request(SERVICE_UPDATE_MUTATION, { id, input });
+                return c.json({ service: data.serviceUpdate });
+            } catch (err) {
+                const { message, status } = railwayError(err);
+                return c.json({ error: message }, status);
+            }
+        },
+    )
+
+    // Point a service at a repo or an image. `Service` has no source field, so the
+    // response can't echo the connection back — re-read the instance to confirm.
+    .post(
+        "/:id/connect",
+        sValidator("param", idParamSchema),
+        sValidator("json", connectServiceSchema),
+        async (c) => {
+            const client = createRailwayClient(c.get("railwayToken"));
+            const { id } = c.req.valid("param");
+            const input = c.req.valid("json");
+
+            try {
+                const data = await client.request(SERVICE_CONNECT_MUTATION, { id, input });
+                return c.json({ service: data.serviceConnect });
+            } catch (err) {
+                const { message, status } = railwayError(err);
+                return c.json({ error: message }, status);
+            }
+        },
+    )
+
+    // Detach the source in every environment at once — there's no narrower option.
+    // The service and its deployments survive.
+    .post("/:id/disconnect", sValidator("param", idParamSchema), async (c) => {
         const client = createRailwayClient(c.get("railwayToken"));
         const { id } = c.req.valid("param");
-        const input = c.req.valid("json");
 
         try {
-            const data = await client.request(SERVICE_CONNECT_MUTATION, { id, input });
-            return c.json({ service: data.serviceConnect });
+            const data = await client.request(SERVICE_DISCONNECT_MUTATION, { id });
+            return c.json({ service: data.serviceDisconnect });
         } catch (err) {
             const { message, status } = railwayError(err);
             return c.json({ error: message }, status);
         }
-    },
-);
+    })
 
-// Detach the source in every environment at once — there's no narrower option.
-// The service and its deployments survive.
-app.post("/:id/disconnect", sValidator("param", idParamSchema), async (c) => {
-    const client = createRailwayClient(c.get("railwayToken"));
-    const { id } = c.req.valid("param");
+    // Edit per-environment config. The mutation returns a bare Boolean, so the
+    // fresh instance is re-read to give the client something to confirm against.
+    .patch(
+        "/:id/instance",
+        sValidator("param", idParamSchema),
+        sValidator("query", environmentQuerySchema),
+        sValidator("json", updateInstanceSchema),
+        async (c) => {
+            const client = createRailwayClient(c.get("railwayToken"));
+            const { id } = c.req.valid("param");
+            const { environmentId } = c.req.valid("query");
+            const input = c.req.valid("json");
 
-    try {
-        const data = await client.request(SERVICE_DISCONNECT_MUTATION, { id });
-        return c.json({ service: data.serviceDisconnect });
-    } catch (err) {
-        const { message, status } = railwayError(err);
-        return c.json({ error: message }, status);
-    }
-});
+            try {
+                const data = await client.request(SERVICE_INSTANCE_UPDATE_MUTATION, {
+                    serviceId: id,
+                    environmentId,
+                    input,
+                });
 
-// Edit per-environment config. The mutation returns a bare Boolean, so the
-// fresh instance is re-read to give the client something to confirm against.
-app.patch(
-    "/:id/instance",
-    sValidator("param", idParamSchema),
-    sValidator("query", environmentQuerySchema),
-    sValidator("json", updateInstanceSchema),
-    async (c) => {
+                if (!data.serviceInstanceUpdate) {
+                    return c.json({ error: "Could not update service" }, 502);
+                }
+
+                const fresh = await client.request(SERVICE_INSTANCE_QUERY, {
+                    serviceId: id,
+                    environmentId,
+                });
+
+                return c.json({ instance: fresh.serviceInstance });
+            } catch (err) {
+                const { message, status } = railwayError(err);
+                return c.json({ error: message }, status);
+            }
+        },
+    )
+
+    // Delete a service everywhere. Irreversible — takes deployments, variables and
+    // domains with it.
+    .delete("/:id", sValidator("param", idParamSchema), async (c) => {
         const client = createRailwayClient(c.get("railwayToken"));
         const { id } = c.req.valid("param");
-        const { environmentId } = c.req.valid("query");
-        const input = c.req.valid("json");
 
         try {
-            const data = await client.request(SERVICE_INSTANCE_UPDATE_MUTATION, {
-                serviceId: id,
-                environmentId,
-                input,
-            });
+            const data = await client.request(SERVICE_DELETE_MUTATION, { id });
 
-            if (!data.serviceInstanceUpdate) {
-                return c.json({ error: "Could not update service" }, 502);
+            // serviceDelete returns a bare Boolean; false means Railway declined.
+            if (!data.serviceDelete) {
+                return c.json({ error: "Could not delete service" }, 502);
             }
 
-            const fresh = await client.request(SERVICE_INSTANCE_QUERY, {
-                serviceId: id,
-                environmentId,
-            });
-
-            return c.json({ instance: fresh.serviceInstance });
+            return c.json({ deleted: true });
         } catch (err) {
             const { message, status } = railwayError(err);
             return c.json({ error: message }, status);
         }
-    },
-);
+    });
 
-// Delete a service everywhere. Irreversible — takes deployments, variables and
-// domains with it.
-app.delete("/:id", sValidator("param", idParamSchema), async (c) => {
-    const client = createRailwayClient(c.get("railwayToken"));
-    const { id } = c.req.valid("param");
-
-    try {
-        const data = await client.request(SERVICE_DELETE_MUTATION, { id });
-
-        // serviceDelete returns a bare Boolean; false means Railway declined.
-        if (!data.serviceDelete) {
-            return c.json({ error: "Could not delete service" }, 502);
-        }
-
-        return c.json({ deleted: true });
-    } catch (err) {
-        const { message, status } = railwayError(err);
-        return c.json({ error: message }, status);
-    }
-});
-
-export default app;
+export default routes;

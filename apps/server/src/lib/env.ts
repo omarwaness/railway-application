@@ -9,6 +9,9 @@ const urlSchema = z
     .refine((value) => URL.canParse(value), "must be a valid URL");
 
 const envSchema = z.object({
+    // The browser's Origin header never carries a trailing slash, so it's
+    // stripped here rather than at each use site — CORS matches the string exactly.
+    CLIENT_URL: urlSchema.transform((value) => value.replace(/\/+$/, "")),
     DATABASE_URL: urlSchema,
     BETTER_AUTH_URL: urlSchema,
     BETTER_AUTH_SECRET: z.string().min(32, "must be at least 32 characters"),
