@@ -1,4 +1,5 @@
-import { graphql } from './generated'
+import { graphql, useFragment, type FragmentType } from './generated'
+import type { ServiceRowFragment } from './generated/graphql'
 
 // Docs for every document in this file: see ../../README.md
 
@@ -21,6 +22,31 @@ export const SERVICE_ROW_FRAGMENT = graphql(`
       }
    }
 `)
+
+/** A ServiceRow as it goes over the wire — the fragment, minus codegen's marker. */
+export type ServiceRow = Omit<ServiceRowFragment, ' $fragmentName'>
+
+/**
+ * Unmasks a ServiceRow node for a JSON response. Every route that returns
+ * services goes through here, so they all hand back the same shape.
+ *
+ * Two codegen artifacts have to be undone for the RPC client's sake. The cast
+ * is the first: `useFragment` is a type-level no-op at runtime, but its
+ * `Partial<TType>` overload is the one that matches a masked node, so its
+ * result comes back with every field optional. The destructure is the second:
+ * `$fragmentName` is a phantom key that's never serialized, but it rides into
+ * the route's response type if left on.
+ */
+export function serviceRow(
+   node: FragmentType<typeof SERVICE_ROW_FRAGMENT>,
+): ServiceRow {
+   const { [' $fragmentName']: _marker, ...service } = useFragment(
+      SERVICE_ROW_FRAGMENT,
+      node,
+   ) as ServiceRowFragment
+
+   return service
+}
 
 export const SERVICE_QUERY = graphql(`
    query Service($id: String!) {

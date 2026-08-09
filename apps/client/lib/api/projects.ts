@@ -67,6 +67,15 @@ type ProjectOverview = InferResponseType<
 >
 
 /**
+ * A service as the overview returns it: the service itself plus the instance
+ * fields that belong to the environment being shown, latest deployment included.
+ * Not the same shape as `ProjectService` — that one comes off the list route.
+ */
+type EnvironmentService = NonNullable<
+  ProjectOverview["primaryEnvironment"]
+>["services"][number]
+
+/**
  * One project by id. Same widening as the list — `envFirst` and `isEphemeral`
  * go out as strings and the server coerces them back — and the key keeps the
  * params as written, so `queryKeys.projects.byId(id)` invalidates every
@@ -117,5 +126,6 @@ export type {
   Project,
   ProjectService,
   ProjectOverview,
+  EnvironmentService,
   CreateProjectInput,
 }

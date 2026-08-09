@@ -11,8 +11,8 @@ import {
     PROJECT_UPDATE_MUTATION,
     PROJECT_DELETE_MUTATION,
 } from "../gql/project-queries";
-import { useFragment, type FragmentType } from "../gql/generated";
-import { SERVICE_ROW_FRAGMENT } from "../gql/service-queries";
+import type { FragmentType } from "../gql/generated";
+import { SERVICE_ROW_FRAGMENT, serviceRow } from "../gql/service-queries";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { tokenMiddleware } from "../middlewares/token.middleware";
 import type { HonoEnv } from "../types";
@@ -84,9 +84,7 @@ function withServices(env: {
         id: env.id,
         name: env.name,
         unmergedChangesCount: env.unmergedChangesCount,
-        services: env.serviceInstances.edges.map(({ node }) =>
-            useFragment(SERVICE_ROW_FRAGMENT, node),
-        ),
+        services: env.serviceInstances.edges.map(({ node }) => serviceRow(node)),
     };
 }
 
