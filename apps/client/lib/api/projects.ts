@@ -4,7 +4,11 @@ import {
   useQueryClient,
 } from "@tanstack/react-query"
 
-import { queryKeys, type ProjectFilters } from "@/lib/api/keys"
+import {
+  queryKeys,
+  type ProjectFilters,
+  type ProjectDetailParams,
+} from "@/lib/api/keys"
 import {
   rpc,
   unwrap,
@@ -53,6 +57,44 @@ function projectsQueryOptions(filters: ProjectFilters = {}) {
   })
 }
 
+/**
+ * Everything the project page opens with: the project itself, its environments
+ * for the switcher, and the services in whichever environment is primary.
+ */
+type ProjectOverview = InferResponseType<
+  (typeof rpc.projects)[":id"]["$get"],
+  200
+>
+
+/**
+ * One project by id. Same widening as the list — `envFirst` and `isEphemeral`
+ * go out as strings and the server coerces them back — and the key keeps the
+ * params as written, so `queryKeys.projects.byId(id)` invalidates every
+ * variation at once.
+ */
+function projectOverviewQueryOptions(
+  projectId: string,
+  params: ProjectDetailParams = {}
+) {
+  const { envFirst, isEphemeral } = params
+
+  return queryOptions({
+    queryKey: queryKeys.projects.detail(projectId, params),
+    queryFn: () =>
+      unwrap(
+        rpc.projects[":id"].$get({
+          param: { id: projectId },
+          query: {
+            ...(envFirst !== undefined && { envFirst: String(envFirst) }),
+            ...(isEphemeral !== undefined && {
+              isEphemeral: String(isEphemeral),
+            }),
+          },
+        })
+      ),
+  })
+}
+
 type CreateProjectInput = InferRequestType<typeof rpc.projects.$post>["json"]
 
 /**
@@ -70,5 +112,10 @@ function useCreateProject() {
   })
 }
 
-export { projectsQueryOptions, useCreateProject }
-export type { Project, ProjectService, CreateProjectInput }
+export { projectsQueryOptions, projectOverviewQueryOptions, useCreateProject }
+export type {
+  Project,
+  ProjectService,
+  ProjectOverview,
+  CreateProjectInput,
+}

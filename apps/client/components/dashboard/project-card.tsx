@@ -65,7 +65,7 @@ function ProjectCard({
       {heading}
 
       {!isList && (
-        <div className="flex h-40 items-center justify-center gap-2 rounded-lg border bg-[radial-gradient(var(--color-border)_1px,transparent_1px)] bg-size-[10px_10px] p-4">
+        <div className="flex h-40 items-center justify-center gap-2 rounded-lg border bg-background bg-[radial-gradient(var(--color-border)_1px,transparent_1px)] bg-size-[10px_10px] p-4">
           {services.length === 0 && (
             <p className="text-xs text-muted-foreground">No services yet</p>
           )}

@@ -7,8 +7,10 @@ export default function ProjectLayout({
 }) {
   return (
     <RequireSession>
+      {/* Full-bleed, unlike the dashboard shell: the canvas is the page, so it
+          gets the whole viewport and scrolls inside itself. */}
       <div className="flex h-svh flex-col overflow-hidden">
-        <main className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col overflow-auto px-4 py-6">
+        <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
           {children}
         </main>
       </div>
