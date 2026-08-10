@@ -6,7 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Drawer,
   DrawerContent,
-  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
@@ -44,8 +43,29 @@ function ServiceDrawer({
         )}
       >
         <DrawerHeader>
-          <DrawerTitle>{service?.serviceName}</DrawerTitle>
-          <DrawerDescription>{service?.serviceId}</DrawerDescription>
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border bg-background">
+              {service?.service.icon ? (
+                // Plain `img`: these URLs are whatever Railway stored, and
+                // `next/image` would need every possible host allow-listed.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={service.service.icon}
+                  alt=""
+                  aria-hidden
+                  className="size-6"
+                />
+              ) : (
+                <span className="text-xl font-medium text-muted-foreground">
+                  {service?.serviceName.slice(0, 1).toUpperCase()}
+                </span>
+              )}
+            </div>
+
+            <DrawerTitle className="min-w-0 truncate text-2xl">
+              {service?.serviceName}
+            </DrawerTitle>
+          </div>
         </DrawerHeader>
 
         <Tabs
@@ -53,7 +73,10 @@ function ServiceDrawer({
           defaultValue="deployments"
           className="min-h-0 flex-1 gap-4 p-4"
         >
-          <TabsList variant="line">
+          <TabsList
+            variant="line"
+            className="**:data-[slot=tabs-trigger]:text-base **:data-[slot=tabs-trigger]:font-normal"
+          >
             <TabsTrigger value="deployments">Deployments</TabsTrigger>
             <TabsTrigger value="variables">Variables</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -77,7 +100,12 @@ function ServiceDrawer({
             </TabsContent>
 
             <TabsContent value="settings">
-              <ServiceSettings service={service} />
+              <ServiceSettings
+                service={service}
+                projectId={projectId}
+                environmentId={environmentId}
+                onDeleted={() => onOpenChange(false)}
+              />
             </TabsContent>
           </ScrollArea>
         </Tabs>
