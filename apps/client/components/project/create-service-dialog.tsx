@@ -31,7 +31,6 @@ function CreateServiceDialog({
   ),
 }: {
   projectId: string
-  /** The environment on screen. Only narrows creation when it's a fork. */
   environmentId?: string
   trigger?: React.ReactElement
 }) {
@@ -42,8 +41,6 @@ function CreateServiceDialog({
     event.preventDefault()
 
     const data = new FormData(event.currentTarget)
-    // Blank is left out entirely rather than sent as an empty string — the
-    // server rejects "" and Railway names the service itself when it's absent.
     const name = String(data.get("name") ?? "").trim() || undefined
 
     createService.mutate(
@@ -76,9 +73,6 @@ function CreateServiceDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger} />
-
-      {/* The form lives inside the popup: `DialogContent` is portalled, so a
-          form wrapping the trigger wouldn't contain these inputs. */}
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader>

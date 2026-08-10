@@ -93,6 +93,8 @@ function ProjectCanvas({ overview }: { overview: ProjectOverview }) {
 
       <ServiceDrawer
         service={selected}
+        projectId={overview.project.id}
+        environmentId={overview.primaryEnvironment?.id}
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
       />

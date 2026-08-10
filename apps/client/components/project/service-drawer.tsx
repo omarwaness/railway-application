@@ -10,14 +10,22 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ServiceDeployment } from "@/components/project/service-deployment"
+import { ServiceVariables } from "@/components/project/service-variables"
+import { ServiceSettings } from "@/components/project/service-settings"
 
 function ServiceDrawer({
   service,
+  projectId,
+  environmentId,
   open,
   onOpenChange,
 }: {
   service: EnvironmentService | null
+  projectId: string
+  /** The environment the canvas is showing. Absent on a project with none. */
+  environmentId?: string
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -30,14 +38,8 @@ function ServiceDrawer({
     >
       <DrawerContent
         className={cn(
-          // Twice the 24rem the drawer ships with, and inset off the screen
-          // edges so it floats rather than sitting flush against them.
-          // The variants match the primitive's own rule exactly — a bare
-          // `sm:` loses to its `data-[swipe-axis=x]:sm:` on specificity.
           "data-[swipe-axis=x]:sm:[--drawer-content-width:48rem]",
-          "[--drawer-inset:0.75rem] rounded-xl border",
-          // The bleed paints past the popup to cover overscroll; with an inset
-          // that strip lands in the gap, so it goes transparent.
+          "rounded-xl border [--drawer-inset:0.75rem]",
           "[--drawer-bleed-background:transparent]"
         )}
       >
@@ -46,11 +48,37 @@ function ServiceDrawer({
           <DrawerDescription>{service?.serviceId}</DrawerDescription>
         </DrawerHeader>
 
-        <ScrollArea className="min-h-0 flex-1">
-          <pre className="p-4 font-mono text-xs leading-relaxed wrap-break-word whitespace-pre-wrap text-muted-foreground">
-            {JSON.stringify(service, null, 2)}
-          </pre>
-        </ScrollArea>
+        {/* Keyed on the service so switching nodes without closing the drawer
+            drops back to the first tab rather than keeping the last one. */}
+        <Tabs
+          key={service?.id}
+          defaultValue="deployment"
+          className="min-h-0 flex-1 gap-4 p-4"
+        >
+          <TabsList variant="line">
+            <TabsTrigger value="deployment">Deployment</TabsTrigger>
+            <TabsTrigger value="variables">Variables</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+
+          <ScrollArea className="min-h-0 flex-1">
+            <TabsContent value="deployment">
+              <ServiceDeployment service={service} />
+            </TabsContent>
+
+            <TabsContent value="variables">
+              <ServiceVariables
+                service={service}
+                projectId={projectId}
+                environmentId={environmentId}
+              />
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <ServiceSettings service={service} />
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
       </DrawerContent>
     </Drawer>
   )
