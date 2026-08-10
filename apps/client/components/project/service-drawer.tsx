@@ -48,22 +48,24 @@ function ServiceDrawer({
           <DrawerDescription>{service?.serviceId}</DrawerDescription>
         </DrawerHeader>
 
-        {/* Keyed on the service so switching nodes without closing the drawer
-            drops back to the first tab rather than keeping the last one. */}
         <Tabs
           key={service?.id}
-          defaultValue="deployment"
+          defaultValue="deployments"
           className="min-h-0 flex-1 gap-4 p-4"
         >
           <TabsList variant="line">
-            <TabsTrigger value="deployment">Deployment</TabsTrigger>
+            <TabsTrigger value="deployments">Deployments</TabsTrigger>
             <TabsTrigger value="variables">Variables</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <ScrollArea className="min-h-0 flex-1">
-            <TabsContent value="deployment">
-              <ServiceDeployment service={service} />
+            <TabsContent value="deployments">
+              <ServiceDeployment
+                service={service}
+                projectId={projectId}
+                environmentId={environmentId}
+              />
             </TabsContent>
 
             <TabsContent value="variables">

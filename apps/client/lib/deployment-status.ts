@@ -6,12 +6,7 @@ type DeploymentStatus = NonNullable<LatestDeployment>["status"]
 const IDLE = "bg-muted-foreground/40"
 const NO_DEPLOYMENT = { dot: IDLE, label: "No deployments" }
 
-/**
- * Dot and label per deployment status — green once it's up, red when it isn't
- * coming back, amber while it's still moving. Labels mirror the server's
- * `DEPLOYMENT_STATUS_LABEL`; the `Record` is exhaustive on purpose, so a status
- * Railway adds breaks the build here instead of rendering a silent grey dot.
- */
+
 const STATUS: Record<DeploymentStatus, { dot: string; label: string }> = {
   SUCCESS: { dot: "bg-emerald-500", label: "Running" },
   FAILED: { dot: "bg-destructive", label: "Failed" },
@@ -28,10 +23,32 @@ const STATUS: Record<DeploymentStatus, { dot: string; label: string }> = {
   SLEEPING: { dot: IDLE, label: "Sleeping" },
 }
 
-/** How to present a service's latest deployment, or the idle pair when it has none. */
-function deploymentStatus(latest: LatestDeployment) {
-  return latest ? STATUS[latest.status] : NO_DEPLOYMENT
+/**
+ * How to present a deployment, or the idle pair when there is none. Typed on
+ * the status alone so it reads a history entry as happily as a service's
+ * `latestDeployment` — the two shapes differ in every other field.
+ */
+function deploymentStatus(deployment: { status: DeploymentStatus } | null) {
+  return deployment ? STATUS[deployment.status] : NO_DEPLOYMENT
 }
 
-export { deploymentStatus }
+/**
+ * Whether a deployment is still moving under its own steam — what tells a poll
+ * to keep going. `NEEDS_APPROVAL` is excluded: it waits on a person, and
+ * nothing changes until one acts.
+ */
+const IN_FLIGHT = new Set<DeploymentStatus>([
+  "QUEUED",
+  "WAITING",
+  "INITIALIZING",
+  "BUILDING",
+  "DEPLOYING",
+  "REMOVING",
+])
+
+function isInFlight(status: DeploymentStatus) {
+  return IN_FLIGHT.has(status)
+}
+
+export { deploymentStatus, isInFlight }
 export type { DeploymentStatus, LatestDeployment }
