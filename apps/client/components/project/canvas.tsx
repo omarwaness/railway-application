@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useTheme } from "next-themes"
 import {
   Background,
   BackgroundVariant,
   Controls,
+  Panel,
   ReactFlow,
   type NodeMouseHandler,
 } from "@xyflow/react"
@@ -13,27 +14,23 @@ import "@xyflow/react/dist/style.css"
 
 import type { EnvironmentService, ProjectOverview } from "@/lib/api/projects"
 import { ServiceNode, type ServiceNodeType } from "@/components/project/node"
+import { ServiceDrawer } from "@/components/project/service-drawer"
+import { CreateServiceDialog } from "@/components/project/create-service-dialog"
 
 // Outside the component: React Flow warns when this object changes identity.
 const nodeTypes = { service: ServiceNode }
 
 const COLUMNS = 3
 const COLUMN_GAP = 280
-const ROW_GAP = 130
+const ROW_GAP = 140
 
-function ProjectCanvas({
-  overview,
-  onServiceSelect,
-}: {
-  overview: ProjectOverview
-  onServiceSelect?: (service: EnvironmentService) => void
-}) {
+function ProjectCanvas({ overview }: { overview: ProjectOverview }) {
   const { resolvedTheme } = useTheme()
+  // The selection outlives `isDrawerOpen` on purpose — see ServiceDrawer.
+  const [selected, setSelected] = useState<EnvironmentService | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const services = overview.primaryEnvironment?.services
 
-  // Positions are laid out on a fixed grid and nodes stay undraggable — Railway
-  // stores canvas positions server-side, and local drag state would be thrown
-  // away by the next refetch anyway.
   const nodes = useMemo<ServiceNodeType[]>(
     () =>
       (services ?? [])
@@ -50,8 +47,10 @@ function ProjectCanvas({
     [services]
   )
 
-  const handleNodeClick: NodeMouseHandler<ServiceNodeType> = (_, node) =>
-    onServiceSelect?.(node.data.service)
+  const handleNodeClick: NodeMouseHandler<ServiceNodeType> = (_, node) => {
+    setSelected(node.data.service)
+    setIsDrawerOpen(true)
+  }
 
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border bg-background">
@@ -63,20 +62,27 @@ function ProjectCanvas({
         nodesDraggable={false}
         nodesConnectable={false}
         fitView
-        fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
+        fitViewOptions={{ padding: 0.2, maxZoom: 1.4 }}
         minZoom={0.4}
-        maxZoom={1.5}
+        maxZoom={2}
         proOptions={{
           hideAttribution: true,
         }}
       >
         <Background
+          bgColor="var(--background)"
           variant={BackgroundVariant.Dots}
           gap={20}
           size={1}
-          color="var(--color-border)"
         />
         <Controls showInteractive={false} />
+
+        <Panel position="top-right">
+          <CreateServiceDialog
+            projectId={overview.project.id}
+            environmentId={overview.primaryEnvironment?.id}
+          />
+        </Panel>
       </ReactFlow>
 
       {nodes.length === 0 && (
@@ -84,6 +90,12 @@ function ProjectCanvas({
           No services yet
         </p>
       )}
+
+      <ServiceDrawer
+        service={selected}
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+      />
     </div>
   )
 }

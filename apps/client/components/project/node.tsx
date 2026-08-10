@@ -44,7 +44,7 @@ function ServiceNode({ data, selected }: NodeProps<ServiceNodeType>) {
   return (
     <div
       className={cn(
-        "flex w-56 items-center gap-2.5 rounded-xl border bg-card p-3 shadow-sm transition-colors hover:border-ring/40",
+        "flex w-56 items-center gap-2.5 rounded-xl border bg-card px-3 py-4.5 shadow-sm transition-colors hover:border-ring/40",
         selected && "border-ring ring-3 ring-ring/50"
       )}
     >
