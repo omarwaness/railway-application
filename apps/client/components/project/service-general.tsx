@@ -115,8 +115,6 @@ function InstanceFields({
         </Value>
       </Field>
 
-      {/* The rest are overrides. Unset is the common case and reads as noise,
-          so they only appear once someone has set one. */}
       {instance.rootDirectory && (
         <Field orientation="horizontal">
           <FieldTitle>Root directory</FieldTitle>
@@ -148,10 +146,6 @@ function InstanceFields({
   )
 }
 
-/**
- * Where the code comes from. Exactly one of the two is set upstream, and a
- * service with neither was created empty and has never been connected.
- */
 function Source({ source }: { source: ServiceInstance["source"] }) {
   if (source?.repo) {
     return (

@@ -44,10 +44,12 @@ type CreateServiceInput = InferRequestType<typeof rpc.services.$post>["json"]
  * Create a service. Only `projectId` is required — Railway names the service
  * when `name` is omitted, and a service with no source is created empty.
  *
- * Two things go stale on success: the project overview, whose environment
- * carries the service list the canvas draws, and the dashboard lists, which
- * flatten each project's services. `projects.byId` is a prefix, so the overview
- * is invalidated whatever detail params it was fetched with.
+ * Three things go stale on success: the project overview, whose environment
+ * carries the service list the canvas draws; the dashboard lists, which flatten
+ * each project's services; and the environments cache, which is where the
+ * service list comes from once the switcher has moved off the primary
+ * environment. `projects.byId` is a prefix, so the overview is invalidated
+ * whatever detail params it was fetched with.
  */
 function useCreateService() {
   const queryClient = useQueryClient()
@@ -60,6 +62,7 @@ function useCreateService() {
         queryKey: queryKeys.projects.byId(projectId),
       })
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.environments.all() })
     },
   })
 }
@@ -75,7 +78,7 @@ type DeleteServiceInput = {
  * Delete a service in every environment at once. Irreversible upstream: the
  * deployments, variables and domains go with it.
  *
- * The same two caches as create go stale, plus everything cached under the
+ * The same three caches as create go stale, plus everything cached under the
  * service itself — `services.byId` is a prefix, so its identity, instance and
  * detail entries are dropped together rather than left to refetch a 404.
  */
@@ -93,6 +96,10 @@ function useDeleteService() {
         queryKey: queryKeys.projects.byId(projectId),
       })
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() })
+      // The overview only carries the primary environment's services; every
+      // other one is cached under `environments`, and this removes the service
+      // from all of them at once.
+      queryClient.invalidateQueries({ queryKey: queryKeys.environments.all() })
     },
   })
 }

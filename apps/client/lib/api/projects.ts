@@ -121,11 +121,70 @@ function useCreateProject() {
   })
 }
 
-export { projectsQueryOptions, projectOverviewQueryOptions, useCreateProject }
+type UpdateProjectInput = InferRequestType<
+  (typeof rpc.projects)[":id"]["$patch"]
+>["json"] & { projectId: string }
+
+/**
+ * Update a project. Only the fields in the body change — Railway ignores nulls,
+ * so `description: ""` is how you clear one.
+ *
+ * Both caches carry the name: the overview the project page reads, and the
+ * dashboard lists. `projects.byId` is a prefix, so the overview is invalidated
+ * whatever detail params it was fetched with.
+ */
+function useUpdateProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ projectId, ...input }: UpdateProjectInput) =>
+      unwrap(
+        rpc.projects[":id"].$patch({ param: { id: projectId }, json: input })
+      ),
+    onSuccess: (_data, { projectId }) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.byId(projectId),
+      })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() })
+    },
+  })
+}
+
+/**
+ * Delete a project. Irreversible upstream — every environment, service and
+ * volume goes with it.
+ *
+ * The project's own cache entries are dropped rather than invalidated: nothing
+ * is left to refetch, and leaving them would send the page it belongs to after
+ * a 404.
+ */
+function useDeleteProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (projectId: string) =>
+      unwrap(rpc.projects[":id"].$delete({ param: { id: projectId } })),
+    onSuccess: (_data, projectId) => {
+      queryClient.removeQueries({
+        queryKey: queryKeys.projects.byId(projectId),
+      })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() })
+    },
+  })
+}
+
+export {
+  projectsQueryOptions,
+  projectOverviewQueryOptions,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject,
+}
 export type {
   Project,
   ProjectService,
   ProjectOverview,
   EnvironmentService,
   CreateProjectInput,
+  UpdateProjectInput,
 }

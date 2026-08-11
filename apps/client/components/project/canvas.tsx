@@ -12,6 +12,7 @@ import {
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 
+import { useEnvironmentServices } from "@/lib/api/environments"
 import type { EnvironmentService, ProjectOverview } from "@/lib/api/projects"
 import { ServiceNode, type ServiceNodeType } from "@/components/project/node"
 import { ServiceDrawer } from "@/components/project/service-drawer"
@@ -24,12 +25,24 @@ const COLUMNS = 3
 const COLUMN_GAP = 280
 const ROW_GAP = 140
 
-function ProjectCanvas({ overview }: { overview: ProjectOverview }) {
+function ProjectCanvas({
+  overview,
+  environmentId,
+}: {
+  overview: ProjectOverview
+  /** The environment being drawn. Absent on a project with none. */
+  environmentId?: string
+}) {
   const { resolvedTheme } = useTheme()
   // The selection outlives `isDrawerOpen` on purpose — see ServiceDrawer.
   const [selected, setSelected] = useState<EnvironmentService | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const services = overview.primaryEnvironment?.services
+
+  const projectId = overview.project.id
+  const { services, isLoading } = useEnvironmentServices(
+    overview,
+    environmentId
+  )
 
   const nodes = useMemo<ServiceNodeType[]>(
     () =>
@@ -79,22 +92,22 @@ function ProjectCanvas({ overview }: { overview: ProjectOverview }) {
 
         <Panel position="top-right">
           <CreateServiceDialog
-            projectId={overview.project.id}
-            environmentId={overview.primaryEnvironment?.id}
+            projectId={projectId}
+            environmentId={environmentId}
           />
         </Panel>
       </ReactFlow>
 
       {nodes.length === 0 && (
         <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-          No services yet
+          {isLoading ? "Loading services…" : "No services yet"}
         </p>
       )}
 
       <ServiceDrawer
         service={selected}
-        projectId={overview.project.id}
-        environmentId={overview.primaryEnvironment?.id}
+        projectId={projectId}
+        environmentId={environmentId}
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
       />

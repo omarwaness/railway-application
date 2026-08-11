@@ -1,8 +1,17 @@
+"use client"
+
 import Link from "next/link"
-import { BoltIcon, LayoutGridIcon } from "lucide-react"
+import { BoltIcon, ChevronsUpDownIcon, LayoutGridIcon } from "lucide-react"
 
 import type { ProjectOverview } from "@/lib/api/projects"
 import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import {
   Tooltip,
@@ -10,8 +19,24 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-function ProjectHeader({ overview }: { overview: ProjectOverview }) {
-  const { project, primaryEnvironment } = overview
+/** Which body sits under the header. Both project routes share everything above it. */
+type ProjectViewName = "canvas" | "settings"
+
+function ProjectHeader({
+  overview,
+  environmentId,
+  onEnvironmentChange,
+  view,
+}: {
+  overview: ProjectOverview
+  /** The environment the page is showing. Absent on a project with none. */
+  environmentId?: string
+  onEnvironmentChange: (environmentId: string) => void
+  /** Which of the two project routes is rendering this. */
+  view: ProjectViewName
+}) {
+  const { project, environments } = overview
+  const active = environments.find((env) => env.id === environmentId)
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 px-4">
@@ -35,17 +60,57 @@ function ProjectHeader({ overview }: { overview: ProjectOverview }) {
         className="h-6 data-vertical:self-center"
       />
 
-      <div className="flex min-w-0 items-center gap-2 text-sm">
-        <span className="truncate font-medium">{project.name}</span>
+      <div className="flex min-w-0 items-center gap-1 text-sm">
+        <Link
+          href={`/project/${project.id}`}
+          className={buttonVariants({
+            variant: "ghost",
+            size: "sm",
+            className: "min-w-0 font-medium",
+          })}
+        >
+          <span className="truncate">{project.name}</span>
+        </Link>
 
-        {primaryEnvironment && (
+        {active && (
           <>
             <span aria-hidden className="text-muted-foreground">
               /
             </span>
-            <span className="truncate font-medium">
-              {primaryEnvironment.name}
-            </span>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Environment: ${active.name}`}
+                    className="min-w-0"
+                  >
+                    <span className="truncate">{active.name}</span>
+                    <ChevronsUpDownIcon
+                      data-icon="inline-end"
+                      className="text-muted-foreground"
+                    />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="start" className="w-48 min-w-48">
+                <DropdownMenuRadioGroup
+                  value={active.id}
+                  onValueChange={(value) => onEnvironmentChange(value)}
+                >
+                  {environments.map((environment) => (
+                    <DropdownMenuRadioItem
+                      key={environment.id}
+                      value={environment.id}
+                    >
+                      <span className="truncate">{environment.name}</span>
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         )}
       </div>
@@ -53,14 +118,20 @@ function ProjectHeader({ overview }: { overview: ProjectOverview }) {
       <Tooltip>
         <TooltipTrigger
           render={
-            <Button
-              variant="ghost"
-              size="icon-sm"
+            <Link
+              href={`/project/${project.id}/settings`}
               aria-label="Project settings"
-              className="ml-auto"
+              // `aria-current` doubles as the styling hook, so the bolt reads
+              // as active on the settings route without a second flag.
+              aria-current={view === "settings" ? "page" : undefined}
+              className={buttonVariants({
+                variant: "ghost",
+                size: "icon-sm",
+                className: "ml-auto aria-[current=page]:bg-muted",
+              })}
             >
               <BoltIcon />
-            </Button>
+            </Link>
           }
         />
         <TooltipContent side="bottom">Project settings</TooltipContent>
@@ -70,3 +141,4 @@ function ProjectHeader({ overview }: { overview: ProjectOverview }) {
 }
 
 export { ProjectHeader }
+export type { ProjectViewName }
