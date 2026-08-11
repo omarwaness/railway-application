@@ -1,6 +1,5 @@
 import { Separator } from "@/components/ui/separator"
 
-/** The title and standfirst every settings section opens with. */
 function SectionHeader({
   title,
   description,

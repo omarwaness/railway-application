@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import { CopyButton } from "@/components/copy-button"
-import { SectionHeader } from "@/components/project/settings/section-header"
+import { SectionHeader } from "@/components/settings/section-header"
 
 /** The overview's project, not the list route's — a different shape entirely. */
 type Project = ProjectOverview["project"]

@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
-import { SectionHeader } from "@/components/project/settings/section-header"
+import { SectionHeader } from "@/components/settings/section-header"
 
 type Environment = ProjectOverview["environments"][number]
 

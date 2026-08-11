@@ -1,14 +1,23 @@
+import { isSectionId } from "@/components/settings/sections"
+import { UserSettings } from "@/components/settings/user-settings"
+
 /**
  * Protected by sitting under `app/(dashboard)` — the layout's `RequireSession`
  * wraps it, and `proxy.ts` redirects a cookie-less hard load before it renders.
+ *
+ * `?section=` is what the dashboard's missing-token notice points at. Read here
+ * rather than with `useSearchParams` so the rail opens on the right section in
+ * the first render, with no flash of the default one; reading it is what makes
+ * this route render on demand.
  */
-export default function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string | string[] }>
+}) {
+  const { section } = await searchParams
+
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-1">
-      <h1 className="text-2xl font-semibold">Settings</h1>
-      <p className="text-sm text-muted-foreground">
-        Nothing to configure yet.
-      </p>
-    </div>
+    <UserSettings initialSection={isSectionId(section) ? section : undefined} />
   )
 }
