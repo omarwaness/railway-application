@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 
+import { cn } from "@/lib/utils"
 import type { EnvironmentService } from "@/lib/api/projects"
 import { useDeleteService } from "@/lib/api/services"
 import { Button } from "@/components/ui/button"
@@ -15,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { drawerAlignedDialog } from "@/components/ui/drawer"
 import { Field, FieldContent, FieldDescription } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
@@ -143,7 +145,10 @@ function DangerSection({
     <section className="flex flex-col gap-4">
       <SectionHeader title="Danger" description="" />
 
-      <Field orientation="horizontal" className="items-center rounded-lg pr-6 pb-12">
+      <Field
+        orientation="horizontal"
+        className="items-center rounded-lg pr-6 pb-12"
+      >
         <FieldContent>
           <FieldDescription className="text-destructive">
             Deleting this service will permanently delete all its deployments
@@ -160,7 +165,7 @@ function DangerSection({
             Delete
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className={cn("sm:max-w-md", drawerAlignedDialog)}>
             <DialogHeader>
               <DialogTitle>Delete {service.serviceName}?</DialogTitle>
               <DialogDescription>

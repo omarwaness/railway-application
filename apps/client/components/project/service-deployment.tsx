@@ -1,12 +1,13 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { ChevronDownIcon, ExternalLinkIcon } from "lucide-react"
+import { ChevronDownIcon, ExternalLinkIcon, RocketIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type { EnvironmentService } from "@/lib/api/projects"
 import {
   serviceDeploymentsQueryOptions,
+  useDeployService,
   type ServiceDeploymentScope,
 } from "@/lib/api/deployments"
 import { deploymentStatus, isInFlight } from "@/lib/deployment-status"
@@ -20,6 +21,7 @@ import { Field, FieldGroup, FieldTitle } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
+import { toast } from "@/components/ui/toast"
 import { DeploymentActions } from "@/components/project/deployment-actions"
 import { DeploymentLogs } from "@/components/project/deployment-logs"
 
@@ -117,9 +119,10 @@ function DeploymentHistory({
             className="h-40 rounded-xl"
           />
         ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No deployments yet
-          </p>
+          <div className="flex flex-col items-center gap-3 py-8">
+            <p className="text-sm text-muted-foreground">No deployments yet</p>
+            <DeployButton scope={scope} />
+          </div>
         ))}
 
       <div className="flex items-center gap-3">
@@ -159,6 +162,42 @@ function DeploymentHistory({
         </ul>
       )}
     </div>
+  )
+}
+
+/**
+ * The first deploy. Nothing here is gated on a capability flag the way the
+ * per-deployment actions are — Railway takes the service as it stands and
+ * builds the commit it already points at — so it fires straight off the click,
+ * and the failure lands in a toast if the service has no source yet.
+ */
+function DeployButton({ scope }: { scope: ServiceDeploymentScope }) {
+  const deploy = useDeployService()
+
+  function handleClick() {
+    deploy.mutate(scope, {
+      onSuccess: () => {
+        toast.add({
+          type: "success",
+          title: "Deploying",
+          description: "Railway is building it — this list will catch up.",
+        })
+      },
+      onError: (error) => {
+        toast.add({
+          type: "error",
+          title: "Could not deploy",
+          description: error.message,
+        })
+      },
+    })
+  }
+
+  return (
+    <Button size="sm" onClick={handleClick} disabled={deploy.isPending}>
+      {deploy.isPending ? <Spinner /> : <RocketIcon />}
+      Deploy
+    </Button>
   )
 }
 

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { createRailwayClient } from "../lib/graphql-client";
 import { railwayError } from "../lib/railway-error";
+import { repoFullName } from "../lib/repo";
 import {
     PROJECTS_QUERY,
     PROJECT_OVERVIEW_QUERY,
@@ -37,7 +38,7 @@ export const listProjectsSchema = z.object({
 // Railway requires both halves of a repo. Only the name identifies it, so the
 // branch defaults rather than forcing every caller to say "main".
 const repo = z.object({
-    fullRepoName: z.string().trim().min(1).max(255),
+    fullRepoName: repoFullName,
     branch: z.string().trim().min(1).max(255).default("main"),
 });
 

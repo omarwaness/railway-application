@@ -50,13 +50,24 @@ type SuccessData<R extends JsonResponse> = Awaited<
 
 function messageFor(body: unknown, status: number) {
     // Every route on the server reports failures as `{ error: string }`.
-    if (
-        body !== null &&
-        typeof body === "object" &&
-        "error" in body &&
-        typeof body.error === "string"
-    ) {
-        return body.error
+    if (body === null || typeof body !== "object" || !("error" in body)) {
+        return `Request failed with status ${status}`
+    }
+
+    if (typeof body.error === "string") return body.error
+
+    // Except the validator, which never reaches the route: it answers with the
+    // schema's own issues, and the first one is the one worth reporting.
+    if (Array.isArray(body.error)) {
+        const [issue] = body.error
+
+        if (
+            issue !== null &&
+            typeof issue === "object" &&
+            typeof issue.message === "string"
+        ) {
+            return issue.message
+        }
     }
 
     return `Request failed with status ${status}`

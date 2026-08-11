@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { CreateVariableForm } from "@/components/project/create-variable-form"
 import { VariableRow } from "@/components/project/variable-row"
 
-
 function ServiceVariables({
   service,
   projectId,

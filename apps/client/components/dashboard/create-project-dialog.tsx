@@ -44,13 +44,11 @@ function CreateProjectDialog({
     event.preventDefault()
 
     const data = new FormData(event.currentTarget)
-    const fullRepoName = value(data, "repo")
 
     createProject.mutate(
       {
         name: value(data, "name"),
         description: value(data, "description"),
-        ...(fullRepoName && { repo: { fullRepoName } }),
       },
       {
         onSuccess: ({ project }) => {
@@ -85,8 +83,8 @@ function CreateProjectDialog({
           <DialogHeader>
             <DialogTitle>New project</DialogTitle>
             <DialogDescription>
-              Name it, describe it, and point it at a repo. Leave anything blank
-              and Railway fills it in.
+              Name it and describe it. Leave anything blank and Railway fills it
+              in.
             </DialogDescription>
           </DialogHeader>
 
@@ -107,16 +105,6 @@ function CreateProjectDialog({
                 id="project-description"
                 name="description"
                 placeholder="What this project is for"
-                autoComplete="off"
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="project-repo">Repo</FieldLabel>
-              <Input
-                id="project-repo"
-                name="repo"
-                placeholder="owner/repo"
                 autoComplete="off"
               />
             </Field>

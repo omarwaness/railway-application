@@ -10,6 +10,7 @@ import {
   useSaveToken,
   type TokenStatus,
 } from "@/lib/api/token"
+import { RAILWAY_LOGIN, RAILWAY_TOKENS } from "@/lib/railway"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -34,12 +35,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import { SectionHeader } from "@/components/settings/section-header"
-
-/** Where Railway issues the token this app asks for. */
-const TOKEN_DOCS = "https://railway.com/account/tokens"
-
-/** Railway's own sign-in, which doubles as its sign-up. */
-const RAILWAY_LOGIN = "https://railway.com/login"
 
 type SavedToken = Extract<TokenStatus, { last4: string }>
 
@@ -99,7 +94,7 @@ function NoTokenAlert() {
           </li>
           <li>
             Open{" "}
-            <a href={TOKEN_DOCS} target="_blank" rel="noreferrer noopener">
+            <a href={RAILWAY_TOKENS} target="_blank" rel="noreferrer noopener">
               Account Settings → Tokens
             </a>
             .
@@ -263,7 +258,7 @@ function TokenForm({
               ? "Saving…"
               : "Pasting saves it straight away — no need for the button."}{" "}
             Create one at{" "}
-            <a href={TOKEN_DOCS} target="_blank" rel="noreferrer noopener">
+            <a href={RAILWAY_TOKENS} target="_blank" rel="noreferrer noopener">
               railway.com/account/tokens
             </a>
             . It is encrypted before it is stored and never shown again.

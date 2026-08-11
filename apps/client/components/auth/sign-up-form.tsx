@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { queryKeys } from "@/lib/api/keys"
 import { authClient } from "@/lib/auth-client"
-import { redirectTarget } from "@/lib/redirects"
+import { REDIRECT_PARAM, redirectTarget } from "@/lib/redirects"
 import { signUpSchema, type SignUpValues } from "@/lib/schemas/auth"
 import { LoginGithub } from "@/components/auth/login-github"
 import { LoginGoogle } from "@/components/auth/login-google"
@@ -19,6 +19,20 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+
+/**
+ * `/onboarding`, carrying forward the redirect the user arrived with so the
+ * page they were originally after is still where onboarding lets them out.
+ */
+function onboardingTarget() {
+  const target = redirectTarget()
+
+  if (target === "/") {
+    return "/onboarding"
+  }
+
+  return `/onboarding?${REDIRECT_PARAM}=${encodeURIComponent(target)}`
+}
 
 function SignUpForm() {
   const router = useRouter()
@@ -39,8 +53,10 @@ function SignUpForm() {
     onSuccess: async () => {
       // Signing up signs the user in, so the session key is stale from here.
       await queryClient.invalidateQueries({ queryKey: queryKeys.session.all() })
-      // Back to whatever the proxy turned them away from, or home.
-      router.push(redirectTarget())
+      // Onboarding first: a brand-new account has no Railway token, so every
+      // other route it could land on comes back empty. Whatever the proxy
+      // turned them away from rides along, for onboarding to finish on.
+      router.push(onboardingTarget())
       // Drops server output rendered while signed out, which would otherwise
       // be served from the router cache after the navigation.
       router.refresh()
