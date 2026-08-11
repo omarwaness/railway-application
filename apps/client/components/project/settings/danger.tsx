@@ -19,7 +19,7 @@ import {
 import { Field, FieldContent, FieldDescription } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
-import { SectionHeader } from "@/components/project/settings/section-header"
+import { SectionHeader } from "@/components/settings/section-header"
 
 /** The overview's project, not the list route's — a different shape entirely. */
 type Project = ProjectOverview["project"]

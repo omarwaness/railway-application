@@ -11,6 +11,8 @@ import { useQuery } from "@tanstack/react-query"
 
 import { cn } from "@/lib/utils"
 import { projectsQueryOptions } from "@/lib/api/projects"
+import { tokenQueryOptions } from "@/lib/api/token"
+import { MissingTokenAlert } from "@/components/dashboard/missing-token-alert"
 import {
   ProjectCard,
   PROJECT_GRID_CLASSNAME,
@@ -31,7 +33,20 @@ const VIEWS: { value: ProjectView; label: string; icon: LucideIcon }[] = [
 function ProjectsList() {
   const [view, setView] = useState<ProjectView>("grid")
   const [search, setSearch] = useState("")
-  const { data, isPending, error } = useQuery(projectsQueryOptions())
+  const { data: token, isPending: isTokenPending } =
+    useQuery(tokenQueryOptions())
+
+  // `last4` is what separates the two answers — Hono widens the `connected`
+  // discriminant to `boolean` on its way into the RPC types.
+  const hasToken = Boolean(token && "last4" in token)
+
+  // Every project on Railway is read with that token, so without one this
+  // request can only come back 4xx. Asking anyway would trade the notice below
+  // for an error message that doesn't say what to do about it.
+  const { data, isPending, error } = useQuery({
+    ...projectsQueryOptions(),
+    enabled: hasToken,
+  })
 
   const query = search.trim().toLowerCase()
 
@@ -63,7 +78,12 @@ function ProjectsList() {
         </div>
       </header>
 
-      {isPending ? (
+      {/* Before `isPending`, which a disabled query never leaves. */}
+      {isTokenPending ? (
+        <ProjectLoading />
+      ) : !hasToken ? (
+        <MissingTokenAlert />
+      ) : isPending ? (
         <ProjectLoading />
       ) : error ? (
         <div

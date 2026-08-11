@@ -23,7 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import { CopyButton } from "@/components/copy-button"
-import { SectionHeader } from "@/components/project/settings/section-header"
+import { SectionHeader } from "@/components/settings/section-header"
 
 function ServicesSection({
   overview,
