@@ -3,8 +3,7 @@ import { sValidator } from "@hono/standard-validator";
 import { z } from "zod";
 
 import { createRailwayClient } from "../lib/graphql-client";
-import { useFragment } from "../gql/generated";
-import { SERVICE_ROW_FRAGMENT } from "../gql/service-queries";
+import { serviceRow } from "../gql/service-queries";
 import { PROJECT_OVERVIEW_QUERY } from "../gql/project-queries";
 import {
     ENVIRONMENTS_QUERY,
@@ -110,9 +109,7 @@ const routes = app
                     environment,
                     // Same ...ServiceRow shape the project overview returns, so the
                     // list renders from one shape either way.
-                    services: serviceInstances.edges.map(({ node }) =>
-                        useFragment(SERVICE_ROW_FRAGMENT, node),
-                    ),
+                    services: serviceInstances.edges.map(({ node }) => serviceRow(node)),
                 });
             } catch (err) {
                 const { message, status } = railwayError(err);

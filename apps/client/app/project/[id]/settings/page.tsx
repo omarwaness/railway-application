@@ -7,5 +7,5 @@ export default async function Page({
 }) {
   const { id } = await params
 
-  return <ProjectMain projectId={id} view="canvas" />
+  return <ProjectMain projectId={id} view="settings" />
 }
