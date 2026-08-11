@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { EllipsisVerticalIcon } from "lucide-react"
 
+import { cn } from "@/lib/utils"
 import {
   useDeleteVariable,
   useUpsertVariable,
@@ -25,10 +26,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { drawerAlignedDialog } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
-
 
 function VariableRow({
   scope,
@@ -219,7 +220,7 @@ function RowMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={cn("sm:max-w-md", drawerAlignedDialog)}>
         <DialogHeader>
           <DialogTitle>Delete {name}?</DialogTitle>
           <DialogDescription>

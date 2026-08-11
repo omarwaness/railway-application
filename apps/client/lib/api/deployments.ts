@@ -140,6 +140,30 @@ function deploymentQueryOptions(deploymentId: string) {
 }
 
 /**
+ * Build and ship a service as it's configured right now, without a deployment
+ * to start from. Railway doesn't build a service when its source is attached,
+ * so until this runs once there's nothing to redeploy — which is what makes it
+ * the only way out of an empty history.
+ *
+ * The commit is left to Railway: `commitSha` ships a specific one, and the
+ * service already points at the branch it should build.
+ */
+function useDeployService() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ serviceId, environmentId }: ServiceDeploymentScope) =>
+      unwrap(rpc.deployments.$post({ json: { serviceId, environmentId } })),
+    onSuccess: (_data, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.deployments.all() })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.byId(projectId),
+      })
+    },
+  })
+}
+
+/**
  * Which deployment to act on, and the project it belongs to — the project is
  * only there for invalidation, since the overview carries the `latestDeployment`
  * the canvas nodes draw their status dots from.
@@ -198,6 +222,7 @@ export {
   buildLogsQueryOptions,
   runtimeLogsQueryOptions,
   httpLogsQueryOptions,
+  useDeployService,
   useRedeployDeployment,
   useRestartDeployment,
   useCancelDeployment,

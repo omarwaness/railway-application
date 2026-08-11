@@ -15,6 +15,7 @@ import {
     SERVICE_DETAIL_QUERY,
 } from "../gql/service-queries";
 import { railwayError } from "../lib/railway-error";
+import { repoFullName } from "../lib/repo";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { tokenMiddleware } from "../middlewares/token.middleware";
 import type { HonoEnv } from "../types";
@@ -26,7 +27,7 @@ const app = new Hono<HonoEnv>()
 // Shared field definitions.
 const name = z.string().trim().min(1, "Name cannot be blank").max(255);
 const icon = z.string().trim().min(1).max(1000);
-const repo = z.string().trim().min(1);
+const repo = repoFullName;
 const image = z.string().trim().min(1);
 const branch = z.string().trim().min(1).max(255);
 

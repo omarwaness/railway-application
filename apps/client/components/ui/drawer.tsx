@@ -164,6 +164,21 @@ function DrawerContent({
   )
 }
 
+/**
+ * Centers a portalled popup over the drawer instead of the viewport.
+ *
+ * A dialog opened from inside the drawer is portalled to the body, so its own
+ * `left-1/2` centering lands on the middle of the screen while the drawer sits
+ * against the right edge. Pinning both insets to the drawer's edges — its
+ * inset from the right, its width from the left — hands the centering back to
+ * `mx-auto`, and the popup lands on the panel it was opened from.
+ *
+ * The widths track the popup above: 75% of the screen, and the `48rem` that
+ * `service-drawer.tsx` overrides it to from `sm` up.
+ */
+const drawerAlignedDialog =
+  "right-3 left-[calc(25%-0.75rem)] mx-auto max-w-[calc(75%-2rem)] translate-x-0 sm:left-[calc(100vw-48.75rem)]"
+
 function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -222,4 +237,5 @@ export {
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
+  drawerAlignedDialog,
 }
