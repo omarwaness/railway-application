@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 
-
 function CreateVariableForm({ scope }: { scope: ServiceVariableScope }) {
   const [isAdding, setIsAdding] = useState(false)
   const upsertVariable = useUpsertVariable()

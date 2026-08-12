@@ -1,9 +1,4 @@
-import {
-  Key,
-  PaletteIcon,
-  UserIcon,
-  type LucideIcon,
-} from "lucide-react"
+import { Key, PaletteIcon, UserIcon, type LucideIcon } from "lucide-react"
 
 /** The contents list, in the order it reads down the rail. */
 const SECTIONS: { id: SectionId; label: string; icon: LucideIcon }[] = [

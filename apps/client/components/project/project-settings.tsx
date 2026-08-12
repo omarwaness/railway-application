@@ -27,7 +27,6 @@ const SECTIONS = [
 
 type SectionId = (typeof SECTIONS)[number]["id"]
 
-
 function ProjectSettings({
   overview,
   environmentId,

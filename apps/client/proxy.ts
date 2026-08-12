@@ -26,8 +26,9 @@ export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
   // `/auth/*` has to stay reachable without a session, or there'd be nowhere
-  // to log in.
-  if (pathname.startsWith("/auth")) {
+  // to log in — and `/` is the landing page, which exists to be read by people
+  // who don't have an account yet.
+  if (pathname === "/" || pathname.startsWith("/auth")) {
     return NextResponse.next()
   }
 

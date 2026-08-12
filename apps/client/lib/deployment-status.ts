@@ -6,7 +6,6 @@ type DeploymentStatus = NonNullable<LatestDeployment>["status"]
 const IDLE = "bg-muted-foreground/40"
 const NO_DEPLOYMENT = { dot: IDLE, label: "No deployments" }
 
-
 const STATUS: Record<DeploymentStatus, { dot: string; label: string }> = {
   SUCCESS: { dot: "bg-emerald-500", label: "Running" },
   FAILED: { dot: "bg-destructive", label: "Failed" },
