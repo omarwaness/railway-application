@@ -47,6 +47,40 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Durations here are placeholders: every consumer sets its own via an inline
+     `animation-duration`, which wins over the shorthand. */
+  --animate-marquee: marquee 30s linear infinite;
+  --animate-marquee-vertical: marquee-vertical 30s linear infinite;
+  --animate-tab-progress: tab-progress 10s linear forwards;
+}
+
+/* The track is duplicated, so travelling one copy's width plus one gap lands
+   the second copy exactly where the first started. `--gap` is set by Marquee. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap, 1rem)));
+  }
+}
+
+@keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap, 1rem)));
+  }
+}
+
+@keyframes tab-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Neutrals carry a slight cool/violet tint (hue 286); accents sit at hue 300. */
@@ -138,5 +172,21 @@
   }
   html {
     @apply font-sans;
+    /* Anchors land below the sticky navbar (h-20) instead of under it. */
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+  }
+}
+
+/* Unlayered on purpose: the `animate-*` utilities set the `animation`
+   shorthand, which resets play-state, and the utilities layer outranks every
+   layered rule no matter the specificity. Only an unlayered rule wins. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-marquee,
+  .animate-marquee-vertical {
+    animation-play-state: paused;
   }
 }
