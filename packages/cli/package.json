@@ -1,0 +1,21 @@
+{
+    "name": "railway-controller-cli",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "bin": {
+        "rw": "./src/index.ts"
+    },
+    "scripts": {
+        "start": "bun run src/index.ts",
+        "dev": "bun run --hot src/index.ts"
+    },
+    "dependencies": {
+        "commander": "^15.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.2"
+    }
+}
