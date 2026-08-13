@@ -7,11 +7,13 @@
     },
     "scripts": {
         "dev": "bun run --hot src/index.ts",
+        "start": "bun run src/index.ts",
+        "typecheck": "tsc --noEmit",
         "test": "bun test src/tests --timeout 30000",
         "test:routes": "bun test src/tests/routes.test.ts --timeout 300000",
         "generate": "drizzle-kit generate",
         "codegen": "graphql-codegen --config codegen.ts",
-        "migrate": "npx drizzle-kit migrate"
+        "migrate": "bun run src/db/migrate.ts"
     },
     "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",

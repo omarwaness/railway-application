@@ -33,6 +33,11 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 // Chained on purpose: Hono only carries route types through the value each
 // `.route()` returns, so splitting these into separate `app.route(...)`
 // statements would leave `AppType` with no routes and the RPC client untyped.
+// Outside the chain below on purpose: this is infrastructure, not API surface,
+// and it has no business appearing in the client's typed route map. It must
+// stay unauthenticated — Railway's healthcheck carries no session.
+app.get("/health", (c) => c.json({ status: "ok" }));
+
 const routes = app
     .get('/', (c) => c.text('Hono!'))
     .route("/token", tokenRoutes)
@@ -47,6 +52,7 @@ const routes = app
 export type AppType = typeof routes;
 
 export default {
-  port: 4000,
+  // Railway hands the port in at runtime; `env` supplies 4000 only for local runs.
+  port: env.PORT,
   fetch: app.fetch,
 }

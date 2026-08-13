@@ -30,6 +30,10 @@ pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the template, which documents what a deploy needs and holds no
+# values. This negation is required here: the root .gitignore has the same
+# rule, but the closest .gitignore wins and would otherwise ignore it.
+!.env.example
 
 # typescript
 *.tsbuildinfo
