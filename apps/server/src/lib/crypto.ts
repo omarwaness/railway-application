@@ -4,6 +4,10 @@ const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12; // 96 bits, the recommended nonce size for GCM
 const KEY_LENGTH = 32; // 256 bits
 
+// Read per call rather than cached at import: `env.ts` has already rejected a
+// bad key at boot, so this never fires in a running deploy — but keeping the
+// lookup dynamic is what lets the tests swap keys to prove that a payload
+// encrypted under one key won't decrypt under another.
 function getKey(): Buffer {
     const raw = process.env.ENCRYPTION_KEY;
     if (!raw) {

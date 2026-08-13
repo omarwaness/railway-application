@@ -24,10 +24,11 @@ function Scramble({ text }: { text: string }) {
   const [display, setDisplay] = useState(text)
 
   useEffect(() => {
-    if (reduce) {
-      setDisplay(text)
-      return
-    }
+    // Nothing to schedule under reduced motion — the render below reads `text`
+    // straight through in that case, so setting state here would only be a
+    // redundant re-render (and trips react-hooks/set-state-in-effect).
+    if (reduce) return
+
     const chars = text.split("")
     const start = performance.now()
     let raf = 0
@@ -58,7 +59,9 @@ function Scramble({ text }: { text: string }) {
     return () => cancelAnimationFrame(raf)
   }, [text, reduce])
 
-  return <span className="tabular-nums">{display}</span>
+  // `text` rather than `display` under reduced motion, so a changed `code` prop
+  // is reflected immediately without the effect having to write state.
+  return <span className="tabular-nums">{reduce ? text : display}</span>
 }
 
 export function NotFoundGlitch({

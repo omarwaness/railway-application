@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
@@ -13,6 +14,16 @@ const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 })
+
+// Without this every page ships Next's placeholder title. `template` lets a
+// route set just its own name and still read as "<name> · Railway Controller".
+export const metadata: Metadata = {
+  title: {
+    default: "Railway Controller",
+    template: "%s · Railway Controller",
+  },
+  description: "Manage Railway projects, services, and deployments.",
+}
 
 export default function RootLayout({
   children,

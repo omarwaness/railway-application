@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch makes the first run's result irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # --frozen-lockfile so CI fails on a lockfile that doesn't match
+      # package.json, rather than silently resolving different versions than
+      # the ones Railway will install.
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck server
+        run: bun run --cwd apps/server typecheck
+
+      - name: Typecheck client
+        run: bun run --cwd apps/client typecheck
+
+      - name: Lint client
+        run: bun run --cwd apps/client lint
+
+      # The real point of this step: NEXT_PUBLIC_SERVER_URL is inlined at build
+      # time and lib/rpc.ts throws without it, so a build is the only thing that
+      # proves the client is deployable. The value is a placeholder — nothing
+      # here connects to it.
+      - name: Build client
+        run: bun run --cwd apps/client build
+        env:
+          NEXT_PUBLIC_SERVER_URL: http://localhost:4000
+
+      # Only the crypto suite: the route, token, and railway suites hit a live
+      # database and the real Railway API, so they stay out of CI.
+      #
+      # The env block is not incidental. `tests/index.ts` imports the whole Hono
+      # app to get an in-process fetch handler, which pulls in `lib/env.ts` and
+      # its boot-time validation — so even a pure unit test needs every variable
+      # to be *present and well-formed*. None of these are real or reachable:
+      # nothing in this suite opens a socket, and the suite overrides
+      # ENCRYPTION_KEY with a random one of its own.
+      - name: Test crypto
+        run: bun test apps/server/src/tests/crypto.test.ts --timeout 30000
+        env:
+          CLIENT_URL: http://localhost:3000
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
+          BETTER_AUTH_URL: http://localhost:4000
+          BETTER_AUTH_SECRET: 0123456789012345678901234567890123456789
+          GOOGLE_CLIENT_ID: ci.apps.googleusercontent.com
+          GOOGLE_CLIENT_SECRET: ci
+          GITHUB_CLIENT_ID: ci
+          GITHUB_CLIENT_SECRET: ci
+          RAILWAY_ENDPOINT: https://backboard.railway.com/graphql/v2
+          ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
