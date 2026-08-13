@@ -6,6 +6,28 @@ import { REDIRECT_PARAM } from "@/lib/redirects"
 const LOGIN_PATH = "/auth/login"
 
 /**
+ * Whether the session cookie is visible to *this* origin at all.
+ *
+ * The API sets the cookie on its own host. Two deployments differ:
+ *
+ * - Subdomains of one domain, with `COOKIE_DOMAIN` set on the server: the
+ *   cookie carries `Domain=.example.com` and is sent to this host too, so the
+ *   check below can see it and is worth doing.
+ *
+ * - Unrelated hosts — Railway's default `client-x.up.railway.app` and
+ *   `server-y.up.railway.app` — the cookie is host-only to the API's domain and
+ *   is *never* sent here. Checking for it would find nothing on every single
+ *   navigation and bounce even a freshly signed-in user straight back to the
+ *   login page, forever.
+ *
+ * Local development lands in the second case by configuration but behaves like
+ * the first in practice: cookies ignore port numbers, so `localhost:4000` and
+ * `localhost:3000` share one jar. That's exactly why this bug can't reproduce
+ * locally, and why the flag is explicit rather than inferred from the URL.
+ */
+const SESSION_COOKIE_VISIBLE = Boolean(process.env.NEXT_PUBLIC_COOKIE_DOMAIN)
+
+/**
  * Next 16's replacement for `middleware.ts` — same entry point, new filename.
  *
  * This is an *optimistic* gate, not an authorization check. It asks one
@@ -29,6 +51,15 @@ export function proxy(request: NextRequest) {
   // to log in — and `/` is the landing page, which exists to be read by people
   // who don't have an account yet.
   if (pathname === "/" || pathname.startsWith("/auth")) {
+    return NextResponse.next()
+  }
+
+  // Nothing readable to decide on — hand off to `RequireSession`, which asks
+  // the API directly and so doesn't depend on the cookie reaching this host.
+  // Every protected route renders inside it, so this gives up a little polish
+  // (a spinner before the redirect instead of an instant one) and no safety:
+  // as the note below says, this file never protected anything.
+  if (!SESSION_COOKIE_VISIBLE) {
     return NextResponse.next()
   }
 
