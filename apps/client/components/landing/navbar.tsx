@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import * as React from "react"
+import { TrainFrontIcon } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -44,12 +45,13 @@ function Navbar() {
       <nav className="mx-auto flex h-20 w-full max-w-7xl items-center px-4">
         <Link
           href="/"
-          aria-label="Railway"
+          aria-label="Railway Application"
           className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          {/* Placeholder mark — swap in the real logo when there is one. */}
-          <span aria-hidden className="size-7 rounded-full bg-primary" />
-          <span className="text-sm font-semibold">Railway</span>
+          {/* `text-foreground`, not `text-white`: the bar is `bg-background`,
+              which is white in light mode. This is white where white reads. */}
+          <TrainFrontIcon aria-hidden className="size-6 text-foreground" />
+          <span className="text-sm font-semibold">Railway Application</span>
         </Link>
 
         <div className="ml-8 hidden items-center gap-1 md:flex">

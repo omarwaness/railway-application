@@ -1,5 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
+import { TrainFrontIcon } from "lucide-react"
 
 // The product column points at the sections on this page; the rest are
 // placeholders until there are real pages behind them.
@@ -77,12 +78,13 @@ function Footer() {
           <div className="col-span-2 flex flex-col gap-3">
             <Link
               href="/"
-              aria-label="Railway"
+              aria-label="Railway Application"
               className="flex w-fit items-center gap-2 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              {/* Placeholder mark — swap in the real logo when there is one. */}
-              <span aria-hidden className="size-7 rounded-full bg-primary" />
-              <span className="text-sm font-semibold">Railway</span>
+              {/* `text-foreground` rather than `text-white`: the scrim over the
+                  photo is white in light mode, so a white mark would vanish. */}
+              <TrainFrontIcon aria-hidden className="size-6 text-foreground" />
+              <span className="text-sm font-semibold">Railway Application</span>
             </Link>
             <p className="max-w-xs text-sm text-pretty text-muted-foreground">
               One screen for everything you have running in production.

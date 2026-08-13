@@ -59,10 +59,14 @@ jobs:
           CLIENT_URL: http://localhost:3000
           DATABASE_URL: postgresql://user:pass@localhost:5432/db
           BETTER_AUTH_URL: http://localhost:4000
-          BETTER_AUTH_SECRET: 0123456789012345678901234567890123456789
+          # Quoted, and not all digits: YAML reads a bare run of digits as a
+          # number, and the 40-digit value that used to sit here reached the
+          # process as "1.23456789012346E+38" — 21 characters, which the
+          # 32-character minimum in `lib/env.ts` then rejected.
+          BETTER_AUTH_SECRET: "ci-secret-not-used-to-sign-anything-real"
           GOOGLE_CLIENT_ID: ci.apps.googleusercontent.com
           GOOGLE_CLIENT_SECRET: ci
           GITHUB_CLIENT_ID: ci
           GITHUB_CLIENT_SECRET: ci
           RAILWAY_ENDPOINT: https://backboard.railway.com/graphql/v2
-          ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
