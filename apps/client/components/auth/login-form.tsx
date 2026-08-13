@@ -43,8 +43,8 @@ function LoginForm() {
       // The response carries the user but not a full session, so refetch on
       // the shared key rather than seeding the cache with a different shape.
       await queryClient.invalidateQueries({ queryKey: queryKeys.session.all() })
-      // Back to whatever the proxy turned them away from, or home.
-      router.push(redirectTarget())
+      // Back to whatever the proxy turned them away from, or the dashboard.
+      router.push(redirectTarget("/dashboard"))
       // Drops server output rendered while signed out, which would otherwise
       // be served from the router cache after the navigation.
       router.refresh()

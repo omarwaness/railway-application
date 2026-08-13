@@ -4,19 +4,24 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { ArrowRightIcon, LoaderCircleIcon } from "lucide-react"
+import { motion, useReducedMotion } from "motion/react"
 
 import { cn } from "@/lib/utils"
 import { tokenQueryOptions, useSaveToken } from "@/lib/api/token"
+import { EASE_OUT, SPRING_PANEL } from "@/lib/ease"
 import { RAILWAY_LOGIN, RAILWAY_TOKENS } from "@/lib/railway"
 import { redirectTarget } from "@/lib/redirects"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 
 /** Where a finished — or skipped — onboarding lands when nothing else asked. */
 const DEFAULT_TARGET = "/dashboard"
+
+/** How long the confirmation holds before it sends the user on, in ms. */
+const SUCCESS_DELAY = 5000
 
 const steps = [
   {
@@ -54,6 +59,9 @@ const steps = [
 function TokenOnboarding() {
   const router = useRouter()
   const [token, setToken] = useState("")
+  // The last four of a token saved in this visit — the flag that swaps the
+  // form out for the confirmation, and what it names the token by.
+  const [savedLast4, setSavedLast4] = useState<string | null>(null)
   const saveToken = useSaveToken()
 
   // Whether there's already a token. An error here isn't one: it means the
@@ -70,11 +78,29 @@ function TokenOnboarding() {
 
   // Nothing to onboard: an account that already has a token — one saved from
   // settings, or a second visit to this URL — goes where it was headed.
+  //
+  // Held off once this visit saved one: the save flips `hasToken` as soon as
+  // the refetch lands, which would otherwise cut the confirmation short.
   useEffect(() => {
-    if (hasToken) {
+    if (hasToken && !savedLast4) {
       router.replace(redirectTarget(DEFAULT_TARGET))
     }
-  }, [hasToken, router])
+  }, [hasToken, savedLast4, router])
+
+  // The confirmation's own timer. Cleared on unmount, so pressing Continue
+  // doesn't leave a second navigation queued behind the first.
+  useEffect(() => {
+    if (!savedLast4) {
+      return
+    }
+
+    const timer = window.setTimeout(
+      () => router.replace(redirectTarget(DEFAULT_TARGET)),
+      SUCCESS_DELAY
+    )
+
+    return () => window.clearTimeout(timer)
+  }, [savedLast4, router])
 
   /**
    * Guarded here rather than at each caller: a paste can land while an earlier
@@ -90,14 +116,9 @@ function TokenOnboarding() {
     saveToken.mutate(
       { token: trimmed },
       {
-        onSuccess: (result) => {
-          leave()
-          toast.add({
-            type: "success",
-            title: "Token saved",
-            description: `Ending in ${result.last4}`,
-          })
-        },
+        // No toast: the confirmation screen carries the same news, and a toast
+        // would follow the user to the dashboard to repeat it.
+        onSuccess: (result) => setSavedLast4(result.last4),
         // Stays put on failure so a mistyped token can be corrected.
         onError: (error) =>
           toast.add({
@@ -133,6 +154,12 @@ function TokenOnboarding() {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     save(token)
+  }
+
+  // Ahead of the check below: saving flips `hasToken`, and the spinner would
+  // otherwise take the confirmation's place halfway through it.
+  if (savedLast4) {
+    return <TokenSaved last4={savedLast4} onContinue={leave} />
   }
 
   // Covers the redirect too, so the prompt never flashes up at someone who
@@ -195,6 +222,107 @@ function TokenOnboarding() {
             Skip for now
             <ArrowRightIcon data-icon="inline-end" />
           </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Where a saved token lands: the mark, what was saved, and the two ways on —
+ * the button, or the parent's timer, which the rail counts down.
+ */
+function TokenSaved({
+  last4,
+  onContinue,
+}: {
+  last4: string
+  onContinue: () => void
+}) {
+  const reduce = useReducedMotion()
+
+  return (
+    <div
+      role="status"
+      className="flex min-h-svh flex-col items-center justify-center p-6"
+    >
+      <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center">
+        <motion.div
+          initial={reduce ? false : { scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={SPRING_PANEL}
+          className="relative flex size-24 items-center justify-center rounded-full bg-success/10 text-success ring-1 ring-success/25"
+        >
+          {/* One ripple out of the disc as it settles. Purely decorative, so
+              it's dropped rather than shortened when movement is unwelcome. */}
+          {!reduce && (
+            <motion.span
+              aria-hidden
+              initial={{ scale: 0.9, opacity: 0.4 }}
+              animate={{ scale: 1.7, opacity: 0 }}
+              transition={{ duration: 1.2, ease: EASE_OUT, delay: 0.2 }}
+              className="absolute inset-0 rounded-full bg-success"
+            />
+          )}
+
+          {/* Drawn rather than dropped in: animating `pathLength` runs the
+              stroke on from its start, so the tick reads as being ticked. */}
+          <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="relative size-11"
+          >
+            <motion.path
+              d="M20 6 9 17l-5-5"
+              initial={reduce ? false : { pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.4, ease: EASE_OUT, delay: 0.15 }}
+            />
+          </svg>
+        </motion.div>
+
+        <div className="flex flex-col gap-2">
+          <h1 className="font-heading text-3xl font-semibold">
+            You&apos;re all set
+          </h1>
+          <p className="text-muted-foreground">
+            Your token is encrypted and saved. Your projects, services and
+            deployments are ready to read.
+          </p>
+          <p className="font-mono text-sm text-muted-foreground">
+            Token ending in {last4}
+          </p>
+        </div>
+
+        <Button size="lg" className="w-full" onClick={onContinue}>
+          Continue to dashboard
+          <ArrowRightIcon data-icon="inline-end" />
+        </Button>
+
+        {/* A meter, not an ornament — it's the only sign that something is
+            about to happen on its own, so it runs whatever the motion
+            preference, at the timer's own pace. */}
+        <div className="flex w-full flex-col items-center gap-2">
+          <div
+            aria-hidden
+            className="h-0.5 w-full overflow-hidden rounded-full bg-border"
+          >
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: SUCCESS_DELAY / 1000, ease: "linear" }}
+              style={{ originX: 0 }}
+              className="h-full bg-success"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Taking you to your dashboard…
+          </p>
         </div>
       </div>
     </div>

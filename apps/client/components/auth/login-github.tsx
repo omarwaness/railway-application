@@ -23,8 +23,8 @@ function LoginGithub() {
       // of back in the app. `CLIENT_URL` is a trusted origin server-side.
       //
       // The path is read here rather than passed in, so a provider round trip
-      // ends on the page the proxy originally blocked.
-      callbackURL: `${window.location.origin}${redirectTarget()}`,
+      // ends on the page the proxy originally blocked, or the dashboard.
+      callbackURL: `${window.location.origin}${redirectTarget("/dashboard")}`,
     })
 
     // Only reached when the call fails — a success hands the browser to GitHub
