@@ -9,6 +9,7 @@ import { queryKeys } from "@/lib/api/keys"
 import { authClient } from "@/lib/auth-client"
 import { REDIRECT_PARAM, redirectTarget } from "@/lib/redirects"
 import { signUpSchema, type SignUpValues } from "@/lib/schemas/auth"
+import { AuthAside } from "@/components/auth/auth-aside"
 import { LoginGithub } from "@/components/auth/login-github"
 import { LoginGoogle } from "@/components/auth/login-google"
 import { Button } from "@/components/ui/button"
@@ -240,44 +241,10 @@ function SignUpForm() {
           </p>
         </div>
       </div>
-      <div className="hidden bg-muted lg:block">
-        <form.Subscribe selector={(state) => state.values}>
-          {(values) => (
-            <div className="flex h-full items-center justify-center">
-              <div className="w-full max-w-md -translate-x-8 p-6 font-mono text-sm">
-                <div className="space-y-1 text-muted-foreground">
-                  <p>
-                    <span className="font-semibold text-primary">POST</span>{" "}
-                    /api/auth/sign-up/email
-                  </p>
-                  <p>Host: api.railway.app</p>
-                  <p>Content-Type: application/json</p>
-                  <p>Origin: https://railway.app</p>
-                </div>
-
-                <div className="my-5 w-full border-t" />
-
-                <p className="mb-4 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                  Request body
-                </p>
-                <pre className="overflow-x-auto text-foreground">
-                  {JSON.stringify(
-                    {
-                      name: values.name,
-                      email: values.email,
-                      // Bulleted rather than plain, so the panel still fills in
-                      // as it's typed without putting the password on screen.
-                      password: "•".repeat(values.password.length),
-                    },
-                    null,
-                    2
-                  )}
-                </pre>
-              </div>
-            </div>
-          )}
-        </form.Subscribe>
-      </div>
+      <AuthAside
+        title="Your stack, mapped."
+        description="Connect your Railway token and every project, service, and deployment lands on one screen."
+      />
     </div>
   )
 }
